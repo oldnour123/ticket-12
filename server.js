@@ -143,7 +143,8 @@ module.exports = () => {
     supportRoleId: g.roles.cache.has(b.supportRoleId) ? b.supportRoleId : '',
     messageId: old?.messageId || '',
     types: (Array.isArray(b.types) ? b.types : []).slice(0, 24).map(t => ({
-      id: str(t.id, 30), label: str(t.label, 100) || 'بدون اسم', description: str(t.description, 100), emoji: str(t.emoji, 80)
+      id: str(t.id, 30), label: str(t.label, 100) || 'بدون اسم', description: str(t.description, 100), emoji: str(t.emoji, 80),
+      welcome: str(t.welcome, 1500), roleId: g.roles.cache.has(t.roleId) ? t.roleId : ''
     }))
   });
   const own = (req, res) => { // يتأكد أن اللوحة لنفس السيرفر

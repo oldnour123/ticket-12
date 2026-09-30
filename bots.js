@@ -3,7 +3,7 @@ const store = require('./store'), { buildPanel, buildTicket } = require('./ui');
 
 const V2 = MessageFlags.IsComponentsV2, EPH = MessageFlags.Ephemeral;
 const clients = new Map(); // id -> { client, status, name, error, avatar, invite }
-const isStaff = (m, p) => (p.supportRoleId && m.roles.cache.has(p.supportRoleId)) || m.permissions.has(PermissionFlagsBits.Administrator);
+const isStaff = (m, p, type) => [p.supportRoleId, type?.roleId].some(r => r && m.roles.cache.has(r)) || m.permissions.has(PermissionFlagsBits.Administrator);
 
 // نفس الأوامر والتفاعلات تشتغل على أي بوت جديد
 function attach(client, botId) {
@@ -24,13 +24,17 @@ function attach(client, botId) {
 
         const allow = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory];
         const ow = [{ id: i.guild.id, deny: [PermissionFlagsBits.ViewChannel] }, { id: i.user.id, allow }];
-        if (p.supportRoleId) ow.push({ id: p.supportRoleId, allow });
+        const role = type.roleId || p.supportRoleId;
+        if (role) ow.push({ id: role, allow });
         const ch = await i.guild.channels.create({
           name: `${type.label}-${i.user.username}`.slice(0, 90), type: ChannelType.GuildText,
           parent: p.categoryId || null, topic, permissionOverwrites: ow
         });
-        await ch.send({ components: [buildTicket(p, type, i.user.id)], flags: V2 });
-        return i.followUp({ content: `✅ تم فتح تذكرتك: ${ch}`, flags: EPH });
+        await ch.send({
+          components: [buildTicket(p, type, i.user.id)], flags: V2,
+          allowedMentions: { users: [i.user.id], roles: role ? [role] : [] }
+        });
+        return i.followUp({ content: `✅ تم فتح تذكرة: ${ch}`, flags: EPH });
       }
 
       if (i.isButton() && (i.customId === 't_claim' || i.customId === 't_close')) {
@@ -38,11 +42,11 @@ function attach(client, botId) {
         const p = store.get(botId, panelId);
         if (!p) return i.reply({ content: '❌ بيانات اللوحة غير موجودة', flags: EPH });
         if (i.customId === 't_claim') {
-          if (!isStaff(i.member, p)) return i.reply({ content: '❌ للستاف فقط', flags: EPH });
+          if (!isStaff(i.member, p, p.types.find(t => t.id === typeId))) return i.reply({ content: '❌ للستاف فقط', flags: EPH });
           const type = p.types.find(t => t.id === typeId) || { label: 'تذكرة' };
           return i.update({ components: [buildTicket(p, type, ownerId, i.user.id)], flags: V2 });
         }
-        if (!isStaff(i.member, p) && i.user.id !== ownerId)
+        if (!isStaff(i.member, p, p.types.find(t => t.id === typeId)) && i.user.id !== ownerId)
           return i.reply({ content: '❌ ما عندك صلاحية', flags: EPH });
         await i.reply({ content: '🔒 سيتم حذف التذكرة خلال 5 ثواني...' });
         if (p.logChannelId)

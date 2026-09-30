@@ -40,10 +40,14 @@ function buildTicket(p, type, ownerId, claimedBy) {
       .setEmoji('🙋').setStyle(ButtonStyle.Success).setDisabled(!!claimedBy),
     new ButtonBuilder().setCustomId('t_close').setLabel('إغلاق التذكرة').setEmoji('🔒').setStyle(ButtonStyle.Danger)
   );
+  const role = type.roleId || p.supportRoleId;
+  const head = `<@${ownerId}>` + (role ? ` <@&${role}>` : '');
+  const body = type.welcome || 'اكتب طلبك بالتفصيل وسيرد عليك الفريق قريباً.';
   return new ContainerBuilder().setAccentColor(color(p.color))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(head))
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `## 🎫 ${type.label}\nأهلاً <@${ownerId}>، اكتب طلبك بالتفصيل وسيرد عليك الفريق قريباً.` +
-      (claimedBy ? `\n\n✅ المستلم: <@${claimedBy}>` : '')))
+      `## 🎫 ${type.label}\n${body}` + (claimedBy ? `\n\n✅ المستلم: <@${claimedBy}>` : '')))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addActionRowComponents(row);
 }

@@ -62,7 +62,7 @@ async function openServer(i){try{sc=servers[i];panels=await api(base()+'/panels'
 // ===== اللوحات =====
 const opts=(l,sel,ph)=>`<option value="">${ph}</option>`+l.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(x.name)}</option>`).join('');
 function emojiPrev(c){const m=/^<(a?):\w+:(\d+)>$/.exec(c||'');return m?`<img src="https://cdn.discordapp.com/emojis/${m[2]}.${m[1]?'gif':'png'}">`:''}
-function newPanel(){cur={id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#2b3a67',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨'}]};panels.push(cur);render()}
+function newPanel(){cur={id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#2b3a67',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:''}]};panels.push(cur);render()}
 function pick(id){cur=panels.find(p=>p.id===id);render()}
 function panelsView(){
   const tabs=panels.map(p=>`<button class="g ${cur&&p.id===cur.id?'on':''}" onclick="pick('${p.id}')">${esc(p.name)}</button>`).join('');
@@ -85,7 +85,7 @@ ${p.bannerUrl?`<img class="prev" src="${esc(p.bannerUrl)}"><br><br><button class
 <label><input type="radio" name="pos" ${p.imagePosition==='bottom'?'checked':''} onchange="cur.imagePosition='bottom'"> تحت</label></div></div>
 
 <div class="card"><h3>أنواع التذاكر (الخيارات)</h3><div id="types">${typesHtml()}</div><br>
-<button class="ok" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:''});renderTypes()">➕ إضافة نوع تذكرة</button></div>
+<button class="ok" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:'',welcome:'',roleId:''});renderTypes()">➕ إضافة نوع تذكرة</button></div>
 
 <div class="card"><h3>الإعدادات</h3>
 <label>روم ارسال اللوحة</label><select onchange="cur.channelId=this.value">${opts(meta.channels,p.channelId,'— اختر —')}</select>
@@ -99,6 +99,8 @@ function typesHtml(){return cur.types.map((t,i)=>`<div class="type">
 <select onchange="cur.types[${i}].emoji=this.value;renderTypes()"><option value="">اختر ايموجي من سيرفرك</option>${meta.emojis.map(e=>`<option value="${esc(e.code)}">${esc(e.name)}</option>`).join('')}</select>
 <label>الاسم</label><input value="${esc(t.label)}" oninput="cur.types[${i}].label=this.value">
 <label>الوصف</label><input value="${esc(t.description)}" oninput="cur.types[${i}].description=this.value">
+<label>رسالة التذكرة (تظهر داخل الروم عند فتحها)</label><textarea oninput="cur.types[${i}].welcome=this.value">${esc(t.welcome||'')}</textarea>
+<label>الرول المسؤول عن هذا النوع (يتمنشن)</label><select onchange="cur.types[${i}].roleId=this.value">${opts(meta.roles,t.roleId,'— رتبة الدعم العامة —')}</select>
 <br><br><button class="r" onclick="cur.types.splice(${i},1);renderTypes()">حذف</button></div>`).join('')}
 function renderTypes(){$('#types').innerHTML=typesHtml()}
 async function upl(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);
