@@ -34,6 +34,13 @@ function buildPanel(p) {
   return c;
 }
 
+const DEFAULT_WELCOME = 'تم فتح تذكرتك بنجاح 🎫\nاكتب طلبك وسيرد عليك الفريق قريباً.';
+const fill = (t, v) => String(t)
+  .replace(/\{user\}/g, `<@${v.ownerId}>`)
+  .replace(/\{role\}/g, v.role ? `<@&${v.role}>` : 'الفريق')
+  .replace(/\{type\}/g, v.type);
+
+// الرسالة الأولى: ترحيب + منشن + أزرار الاستلام والإغلاق
 function buildTicket(p, type, ownerId, claimedBy) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('t_claim').setLabel(claimedBy ? 'تم الاستلام' : 'استلام التذكرة')
@@ -42,14 +49,22 @@ function buildTicket(p, type, ownerId, claimedBy) {
   );
   const role = type.roleId || p.supportRoleId;
   const head = `<@${ownerId}>` + (role ? ` <@&${role}>` : '');
-  const body = type.welcome || 'اكتب طلبك بالتفصيل وسيرد عليك الفريق قريباً.';
+  const text = fill(p.ticketWelcome || DEFAULT_WELCOME, { ownerId, role, type: type.label });
   return new ContainerBuilder().setAccentColor(color(p.color))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(head))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `## 🎫 ${type.label}\n${body}` + (claimedBy ? `\n\n✅ المستلم: <@${claimedBy}>` : '')))
+      `## 🎫 ${type.label}\n${text}` + (claimedBy ? `\n\n✅ المستلم: <@${claimedBy}>` : '')))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addActionRowComponents(row);
+}
+
+// الرسالة الثانية: الكلام اللي حددته لهذا النوع (تنرسل بعد الترحيب)
+function buildTypeMessage(p, type, ownerId) {
+  if (!type.welcome) return null;
+  const role = type.roleId || p.supportRoleId;
+  return new ContainerBuilder().setAccentColor(color(p.color))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(fill(type.welcome, { ownerId, role, type: type.label })));
 }
 
 // يرسل اللوحة أو يحدّث الرسالة الموجودة
@@ -67,4 +82,4 @@ async function sendPanel(client, botId, p) {
   store.upsert(botId, p);
 }
 
-module.exports = { buildPanel, buildTicket, sendPanel };
+module.exports = { buildPanel, buildTicket, buildTypeMessage, sendPanel };

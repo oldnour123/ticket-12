@@ -10,11 +10,17 @@ const all = b => read('panels-' + safe(b));
 const get = (b, id) => all(b).find(p => p.id === id);
 const upsert = (b, p) => { const l = all(b); const i = l.findIndex(x => x.id === p.id); i >= 0 ? (l[i] = p) : l.push(p); write('panels-' + b, l); };
 const remove = (b, id) => write('panels-' + safe(b), all(b).filter(p => p.id !== id));
-const dropBot = b => { try { fs.unlinkSync(f('panels-' + safe(b))); } catch {} };
+const dropBot = b => { for (const n of ['panels-', 'responses-', 'tax-', 'autoreplies-']) { try { fs.unlinkSync(f(n + safe(b))); } catch {} } };
+
+// بيانات عامة لكل بوت (ردود الأزرار، إعدادات الضريبة...)
+const kv = {
+  get: (b, n, def) => { try { return JSON.parse(fs.readFileSync(f(n + '-' + safe(b)), 'utf8')); } catch { return def; } },
+  set: (b, n, v) => write(n + '-' + safe(b), v)
+};
 
 const bots = {
   all: () => read('bots'),
   add: b => write('bots', [...read('bots'), b]),
   remove: id => write('bots', read('bots').filter(b => b.id !== id))
 };
-module.exports = { all, get, upsert, remove, dropBot, bots, ROOT };
+module.exports = { all, get, upsert, remove, dropBot, bots, kv, ROOT };

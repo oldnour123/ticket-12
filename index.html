@@ -1,125 +1,222 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>لوحة تحكم المتجر</title>
+<title>لوحة التذاكر</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f14;--card:#171a22;--line:#2a2f3c;--tx:#e8eaf0;--mut:#8b91a3;--ac:#5865f2}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,'Segoe UI',Tahoma,sans-serif;padding:14px;max-width:760px;margin-inline:auto}
-h1{font-size:20px}h3{margin:0 0 8px;font-size:15px;color:var(--mut)}a{text-decoration:none}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
-label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
-input,select,textarea{width:100%;background:#0f1218;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px;font:inherit}
-textarea{min-height:70px;resize:vertical}
-button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
-button.g{background:#262b38}button.r{background:#c0392b}button.ok{background:#1f9d55}
-.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}.tabs button{white-space:nowrap;flex:none}.tabs button.on{outline:2px solid #fff}
-.type{border:1px dashed var(--line);border-radius:12px;padding:10px;margin-top:10px}
-.em{display:flex;gap:8px;align-items:center}.em img{width:28px;height:28px}.em input{flex:1}
-.srv{display:flex;gap:12px;align-items:center}.srv img{width:48px;height:48px;border-radius:50%;background:#262b38}.srv .i{flex:1}.srv small{color:var(--mut)}.srv button{flex:none}
-.prev{width:100%;border-radius:12px;margin-top:8px;max-height:220px;object-fit:cover}
-#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;padding:10px 18px;border-radius:10px;display:none;z-index:9}
-.pos label{display:inline-flex;gap:6px;align-items:center;margin:0 10px 0 0;color:var(--tx)}.pos input{width:auto}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px}.top .em img{border-radius:50%}
+:root{--bg:#0a0e1c;--s1:#121835;--s2:#1a2144;--ln:#283058;--tx:#eef0ff;--mu:#99a2cc;--ac:#7c8cff;--ac2:#5b6cf0;--ok:#37d6a0;--er:#ff6b81}
+*{box-sizing:border-box}html{scroll-padding-bottom:90px}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 'IBM Plex Sans Arabic',system-ui,'Segoe UI',Tahoma,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+a{color:inherit;text-decoration:none}
+.top{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--ln);background:#0a0e1cdd;backdrop-filter:blur(10px);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}.lg{color:var(--ac)}
+.top nav{display:flex;gap:4px;flex:1}
+.nv{background:none;border:0;padding:8px 14px;border-radius:999px;color:var(--mu);cursor:pointer}.nv.on{background:var(--s2);color:var(--tx)}
+.usr{display:flex;align-items:center;gap:8px;color:var(--mu);font-size:14px}.usr img{width:30px;height:30px;border-radius:50%}
+.lnk{background:none;border:0;color:var(--ac);cursor:pointer;padding:4px}
+main{max-width:1120px;margin:0 auto;padding:24px 20px 40px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:16px;margin:0 0 14px}.sub{color:var(--mu);margin:0 0 22px}
+.btn{background:var(--ac2);border:0;border-radius:10px;padding:10px 18px;cursor:pointer;font-weight:500;color:#fff}
+.btn:hover{background:var(--ac)}.btn.g{background:var(--s2);color:var(--tx)}.btn.g:hover{background:var(--ln)}.btn.ok{background:#1fa37a}.btn.er{background:#c94a5d}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.sv{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--ln);border-radius:16px;padding:16px;text-align:start;cursor:pointer;width:100%}
+.sv:hover{border-color:var(--ac)}.sv img,.sv .ph{width:52px;height:52px;border-radius:16px;background:var(--s2);flex:none;display:grid;place-items:center;font-weight:700}
+.sv b{display:block}.sv small{color:var(--mu)}
+.empty{border:1px dashed var(--ln);border-radius:16px;padding:32px;text-align:center;color:var(--mu)}.empty b{color:var(--tx);display:block;font-size:17px;margin-bottom:6px}
+.hero{max-width:460px;margin:12vh auto 0;padding:0 20px}.hero h1{font-size:34px;line-height:1.3}
+.hero .btn{width:100%;padding:14px;font-size:16px}
+details.ow{margin-top:26px;color:var(--mu)}details.ow summary{cursor:pointer}
+.crumb{display:flex;align-items:center;gap:8px;color:var(--mu);margin-bottom:14px;flex-wrap:wrap}.crumb b{color:var(--tx)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:14px}
+.chip{flex:none;background:var(--s1);border:1px solid var(--ln);border-radius:999px;padding:7px 16px;cursor:pointer;color:var(--mu)}
+.chip.on{background:var(--ac2);border-color:var(--ac2);color:#fff}.chip.add{border-style:dashed;color:var(--ac)}
+.seg{display:none;background:var(--s1);border-radius:12px;padding:4px;margin-bottom:16px}.seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;cursor:pointer;color:var(--mu)}.seg button.on{background:var(--s2);color:var(--tx)}
+.ws{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:32px;align-items:start}
+.ed section{padding:0 0 26px;margin-bottom:26px;border-bottom:1px solid var(--ln)}.ed section:last-child{border:0}
+label{display:block;color:var(--mu);font-size:13px;margin:14px 0 6px}
+input:not([type=checkbox]):not([type=color]):not([type=file]),select,textarea{width:100%;background:var(--s1);border:1px solid var(--ln);border-radius:10px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--ac);outline:0}
+textarea{min-height:80px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ck{display:flex;align-items:center;gap:8px;color:var(--tx);margin-top:16px}.ck input{width:18px;height:18px;accent-color:var(--ac2)}
+input[type=color]{width:52px;height:38px;border:1px solid var(--ln);border-radius:10px;background:var(--s1);padding:3px;cursor:pointer}
+.up{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.up input[type=file]{display:none}
+.tg{display:inline-flex;background:var(--s1);border-radius:10px;padding:3px}.tg button{border:0;background:none;padding:7px 18px;border-radius:8px;cursor:pointer;color:var(--mu)}.tg button.on{background:var(--ac2);color:#fff}
+.thumb{width:100%;max-height:150px;object-fit:cover;border-radius:12px;margin-top:12px}
+.ty{background:var(--s1);border:1px solid var(--ln);border-radius:14px;margin-bottom:10px}
+.ty summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}.ty summary::-webkit-details-marker{display:none}
+.ty summary b{flex:1;font-weight:500}.ei{width:26px;text-align:center}.ei img,.ce{width:20px;height:20px;vertical-align:-4px}
+.x{background:none;border:0;color:var(--mu);cursor:pointer;padding:4px 8px;border-radius:8px}.x:hover{color:var(--er);background:#ff6b8118}
+.fg{padding:0 14px 14px}
+.bar{position:sticky;bottom:0;display:flex;gap:10px;padding:14px 0;background:linear-gradient(#0a0e1c00,var(--bg) 30%);margin-top:10px}
+.bar .btn{flex:1}
+.pv{position:sticky;top:76px}.pvh{color:var(--mu);font-size:13px;margin-bottom:10px}
+.msg{background:#313338;border-radius:16px;padding:16px;color:#dbdee1;font-family:system-ui,'Segoe UI',sans-serif}
+.bot{display:flex;align-items:center;gap:8px;margin-bottom:8px}.bot .av{width:34px;height:34px;border-radius:50%;background:var(--ac2);display:grid;place-items:center;font-size:14px}
+.bot b{color:#fff}.bot i{background:#5865f2;color:#fff;font-style:normal;font-size:10px;padding:1px 5px;border-radius:4px}
+.ct{background:#2b2d31;border-radius:10px;border-inline-start:4px solid var(--c);padding:14px;overflow:hidden}
+.ct .bn{width:100%;border-radius:8px;display:block;margin:0 0 10px}.ct .t .h{font-size:20px;font-weight:700;color:#fff}
+.ct hr{border:0;border-top:1px solid #3f4147;margin:10px 0}.ct .d{white-space:normal;font-size:14px}
+.sel{display:flex;justify-content:space-between;background:#1e1f22;border-radius:6px;padding:10px 12px;margin-top:12px;color:#b5bac1;cursor:pointer;font-size:14px}
+.ops{display:none;background:#111214;border-radius:6px;margin-top:4px;padding:6px}.sel.open+.ops{display:block}
+.op{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:4px;font-size:14px}.op:hover{background:#2b2d31}.op small{display:block;color:#949ba4;font-size:12px}
+.bot-row{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--ln);border-radius:16px;padding:14px;margin-bottom:10px;flex-wrap:wrap}
+.bot-row img{width:44px;height:44px;border-radius:50%}.bot-row .i{flex:1;min-width:140px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px}
+#toast{position:fixed;bottom:84px;left:50%;transform:translate(-50%,20px);background:#1fa37a;padding:10px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}#toast.bad{background:#c94a5d}
+@media(max-width:900px){.ws{grid-template-columns:1fr}.seg{display:flex}.ws[data-t=edit] .pv,.ws[data-t=pv] .ed{display:none}.pv{position:static}.top{padding:10px 14px}.usr span{display:none}main{padding:18px 14px 30px}.row2{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style></head><body>
 <div id="app"></div><div id="toast"></div>
 <script>
-let me=null,servers=[],bots=[],panels=[],meta={channels:[],categories:[],roles:[],emojis:[]},cur=null,sc=null,view='servers';
+let me,servers=[],bots=[],panels=[],meta={channels:[],categories:[],roles:[],emojis:[]},cur=null,sc=null,view='servers',tab='edit';
+let sub='panels',ars=[],ar=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,10);
 const base=()=>`/api/s/${sc.botId}/${sc.guildId}`;
-function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2600)}
+function toast(m,bad){const t=$('#toast');t.textContent=m;t.className='show'+(bad?' bad':'');clearTimeout(toast.t);toast.t=setTimeout(()=>t.className='',2600)}
 async function api(u,m='GET',b){
   const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});
   const d=await r.json().catch(()=>({}));
   if(r.status===401&&u!=='/login'){loginScreen();throw new Error('auth')}
   if(!r.ok)throw new Error(d.error||'خطأ');return d}
 
-function loginScreen(){$('#app').innerHTML=`<div class="card"><h1>🛒 لوحة تحكم المتجر</h1>
-<p style="color:var(--mut)">سجّل دخولك بحساب ديسكورد لتشوف السيرفرات اللي تديرها وتتحكم ببوتاتك.</p>
-${location.search.includes('err')?'<p>❌ فشل تسجيل الدخول، حاول مرة ثانية</p>':''}
-<a href="/auth/discord"><button style="width:100%">🔑 تسجيل الدخول عبر Discord</button></a></div>
-<div class="card"><h3>دخول المالك بكلمة السر</h3><input id="pw" type="password" placeholder="كلمة السر"><br><br><button class="g" onclick="doLogin()">دخول</button></div>`}
-async function doLogin(){try{await api('/login','POST',{password:$('#pw').value});boot()}catch(e){toast(e.message)}}
-async function boot(){try{me=await api('/api/me');await loadServers();view='servers';render()}catch(e){}}
-async function loadServers(){servers=await api('/api/servers')}
+// ===== الدخول =====
+function loginScreen(){$('#app').innerHTML=`<div class="hero"><h1>تحكم بتذاكر متجرك من مكان واحد</h1>
+<p class="sub">سجّل دخولك بحساب ديسكورد لتشوف السيرفرات اللي تديرها، وتصمم لوحات التذاكر وتنشرها.</p>
+${location.search.includes('err')?'<p style="color:var(--er)">تعذر تسجيل الدخول. حاول مرة ثانية.</p>':''}
+<a href="/auth/discord"><button class="btn">تسجيل الدخول عبر Discord</button></a>
+<details class="ow"><summary>دخول المالك بكلمة السر</summary><label>كلمة السر</label><input id="pw" type="password"><br><br><button class="btn g" onclick="doLogin()">دخول</button></details></div>`}
+async function doLogin(){try{await api('/login','POST',{password:$('#pw').value});boot()}catch(e){toast(e.message,1)}}
+async function boot(){try{me=await api('/api/me');servers=await api('/api/servers');view='servers';render()}catch(e){}}
 async function logout(){await api('/logout','POST');location.href='/'}
 
-function header(){return `<div class="top"><h1>🛒 لوحة التحكم</h1><div class="em">${me.user.avatar?`<img src="${esc(me.user.avatar)}">`:''}<span>${esc(me.user.username)}</span><button class="g" onclick="logout()">خروج</button></div></div>
-<div class="row"><button class="${view==='servers'||view==='panels'?'':'g'}" onclick="view='servers';render()">🖥️ السيرفرات</button>${me.admin?`<button class="${view==='bots'?'':'g'}" onclick="openBots()">🤖 البوتات (Tokens)</button>`:''}</div><br>`}
-function render(){
-  if(view==='bots')return $('#app').innerHTML=header()+botsHtml();
-  if(view==='panels')return $('#app').innerHTML=header()+panelsView();
-  $('#app').innerHTML=header()+serversHtml()}
+function shell(inner){$('#app').innerHTML=`<header class="top"><div class="brand"><span class="lg">✦</span>لوحة التذاكر</div>
+<nav><button class="nv ${view!=='bots'?'on':''}" onclick="go('servers')">السيرفرات</button>${me.admin?`<button class="nv ${view==='bots'?'on':''}" onclick="openBots()">البوتات</button>`:''}</nav>
+<div class="usr">${me.user.avatar?`<img src="${esc(me.user.avatar)}" alt="">`:''}<span>${esc(me.user.username)}</span><button class="lnk" onclick="logout()">خروج</button></div></header><main>${inner}</main>`}
+function go(v){view=v;render()}
+function render(){view==='bots'?botsView():view==='panels'?panelsView():serversView()}
 
 // ===== السيرفرات =====
-function serversHtml(){
-  if(!servers.length)return `<div class="card"><p>ما لقيت سيرفر تديره وفيه بوت من بوتاتنا.</p><p style="color:var(--mut)">تأكد أنك صاحب السيرفر أو عندك صلاحية Manage Server، وأن البوت مدعو للسيرفر.</p></div>`;
-  return servers.map((s,i)=>`<div class="card srv"><img src="${esc(s.icon||'')}" onerror="this.style.visibility='hidden'"><div class="i"><b>${esc(s.guildName)}</b><br><small>🤖 ${esc(s.botName)}</small></div><button onclick="openServer(${i})">إدارة</button></div>`).join('')}
-async function openServer(i){try{sc=servers[i];panels=await api(base()+'/panels');cur=panels[0]||null;meta=await api(base()+'/meta');view='panels';render()}catch(e){toast(e.message)}}
+function serversView(){shell(`<h1>سيرفراتك</h1><p class="sub">السيرفرات اللي تديرها وفيها بوت. اختر واحد وابدأ.</p>`+(servers.length?`<div class="grid">${servers.map((s,i)=>`<button class="sv" onclick="openServer(${i})">${s.icon?`<img src="${esc(s.icon)}" alt="">`:`<span class="ph">${esc(s.guildName[0])}</span>`}<span><b>${esc(s.guildName)}</b><small>${esc(s.botName)}</small></span></button>`).join('')}</div>`:
+`<div class="empty"><b>ما لقينا سيرفر جاهز</b>تأكد أنك مالك السيرفر أو عندك صلاحية Manage Server، وأن البوت مدعو له.</div>`))}
+async function openServer(i){try{sc=servers[i];panels=await api(base()+'/panels');cur=panels[0]||null;meta=await api(base()+'/meta');view='panels';tab='edit';sub='panels';render()}catch(e){toast(e.message,1)}}
 
 // ===== اللوحات =====
 const opts=(l,sel,ph)=>`<option value="">${ph}</option>`+l.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(x.name)}</option>`).join('');
-function emojiPrev(c){const m=/^<(a?):\w+:(\d+)>$/.exec(c||'');return m?`<img src="https://cdn.discordapp.com/emojis/${m[2]}.${m[1]?'gif':'png'}">`:''}
-function newPanel(){cur={id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#2b3a67',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:''}]};panels.push(cur);render()}
+function em(c){c=(c||'').trim();const m=/^<(a?):\w+:(\d+)>$/.exec(c);return m?`<img class="ce" src="https://cdn.discordapp.com/emojis/${m[2]}.${m[1]?'gif':'png'}" alt="">`:esc(c)}
+function md(t){return esc(t).split('\n').map(l=>/^#{1,3} /.test(l)?`<div class="h">${l.replace(/^#{1,3} /,'')}</div>`:`<div>${l||'&nbsp;'}</div>`).join('')
+  .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/&lt;(a?):\w+:(\d+)&gt;/g,(_,a,id)=>`<img class="ce" src="https://cdn.discordapp.com/emojis/${id}.${a?'gif':'png'}" alt="">`)}
+function newPanel(){cur={id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#5b6cf0',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:'',_o:true}]};panels.push(cur);render()}
 function pick(id){cur=panels.find(p=>p.id===id);render()}
+function tabTo(t){tab=t;$('.ws').dataset.t=t;document.querySelectorAll('.seg button').forEach((b,i)=>b.classList.toggle('on',(i?'pv':'edit')===t))}
+function pvHtml(){const p=cur,img=p.bannerUrl?`<img class="bn" src="${esc(p.bannerUrl)}" alt="" onerror="this.style.display='none'">`:'';
+  const ops=p.types.map(t=>`<div class="op"><span>${em(t.emoji)}</span><div><b>${esc(t.label||'بدون اسم')}</b><small>${esc(t.description)}</small></div></div>`).join('')+(p.showReset?`<div class="op"><span>🔄</span><div><b>Reset Menu</b><small>إعادة ضبط القائمة</small></div></div>`:'');
+  return `<div class="msg"><div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div><div class="ct" style="--c:${esc(p.color)}">${p.imagePosition!=='bottom'?img:''}<div class="t">${md(p.title)}</div><hr><div class="d">${md(p.description)}</div><div class="sel" onclick="this.classList.toggle('open')"><span>${esc(p.placeholder)}</span><span>⌄</span></div><div class="ops">${ops}</div>${p.imagePosition==='bottom'?img:''}</div></div><p class="sub" style="font-size:12px;margin-top:10px">اضغط على القائمة لتشوف الخيارات.</p>`}
+const pv=()=>{const e=$('#pv');if(e){const o=e.querySelector('.sel')?.classList.contains('open');e.innerHTML=pvHtml();if(o)e.querySelector('.sel').classList.add('open')}};
+const set=(k,v)=>{cur[k]=v;pv()};
 function panelsView(){
-  const tabs=panels.map(p=>`<button class="g ${cur&&p.id===cur.id?'on':''}" onclick="pick('${p.id}')">${esc(p.name)}</button>`).join('');
-  return `<p>📍 <b>${esc(sc.guildName)}</b> <small style="color:var(--mut)">— ${esc(sc.botName)}</small></p><div class="tabs">${tabs}<button class="ok" onclick="newPanel()">➕ تذكرة / لوحة جديدة</button></div>`+(cur?editor():'<p>ما في لوحات بعد، اضغط ➕</p>')}
+  if(sub==='auto')return autoView();
+  const chips=panels.map(p=>`<button class="chip ${cur&&p.id===cur.id?'on':''}" onclick="pick('${p.id}')">${esc(p.name)}</button>`).join('');
+  shell(`<div class="crumb"><button class="lnk" onclick="go('servers')">السيرفرات</button>/<b>${esc(sc.guildName)}</b><span>•</span><span>${esc(sc.botName)}</span></div>${subTabs()}<div class="chips">${chips}<button class="chip add" onclick="newPanel()">+ لوحة جديدة</button></div>`+(cur?
+  `<div class="seg"><button class="${tab==='edit'?'on':''}" onclick="tabTo('edit')">تعديل</button><button class="${tab==='pv'?'on':''}" onclick="tabTo('pv')">معاينة</button></div>
+  <div class="ws" data-t="${tab}"><div class="ed">${editor()}<div class="bar"><button class="btn g" onclick="save()">حفظ</button><button class="btn ok" onclick="save(true)">حفظ ونشر في الروم</button></div></div>
+  <aside class="pv"><div class="pvh">كذا تظهر الرسالة في ديسكورد</div><div id="pv">${pvHtml()}</div></aside></div>`:
+  `<div class="empty"><b>ما عندك لوحات بعد</b>اللوحة رسالة فيها قائمة اختيار، وكل خيار يفتح تذكرة لصاحبه.<br><br><button class="btn" onclick="newPanel()">إنشاء أول لوحة</button></div>`))}
 function editor(){const p=cur;return `
-<div class="card"><h3>الأساسيات</h3>
-<label>اسم اللوحة (لك فقط)</label><input value="${esc(p.name)}" oninput="cur.name=this.value">
-<label>العنوان (يدعم # للعناوين والايموجي)</label><textarea oninput="cur.title=this.value">${esc(p.title)}</textarea>
-<label>الوصف</label><textarea oninput="cur.description=this.value">${esc(p.description)}</textarea>
-<label>نص السلكت منيو</label><input value="${esc(p.placeholder)}" oninput="cur.placeholder=this.value">
-<label>لون الكونتينر</label><input type="color" value="${esc(p.color)}" oninput="cur.color=this.value">
-<label><input type="checkbox" style="width:auto" ${p.showReset?'checked':''} onchange="cur.showReset=this.checked"> إظهار خيار Reset Menu</label></div>
-
-<div class="card"><h3>الصورة</h3>
-<label>ارفع من الجوال</label><input type="file" accept="image/*" onchange="upl(this)">
-<label>أو ضع رابط (URL)</label><input placeholder="https://..." value="${esc(p.bannerUrl)}" onchange="cur.bannerUrl=this.value;render()">
-${p.bannerUrl?`<img class="prev" src="${esc(p.bannerUrl)}"><br><br><button class="r" onclick="cur.bannerUrl='';render()">حذف الصورة</button>`:''}
-<label>مكان الصورة</label><div class="pos">
-<label><input type="radio" name="pos" ${p.imagePosition!=='bottom'?'checked':''} onchange="cur.imagePosition='top'"> فوق</label>
-<label><input type="radio" name="pos" ${p.imagePosition==='bottom'?'checked':''} onchange="cur.imagePosition='bottom'"> تحت</label></div></div>
-
-<div class="card"><h3>أنواع التذاكر (الخيارات)</h3><div id="types">${typesHtml()}</div><br>
-<button class="ok" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:'',welcome:'',roleId:''});renderTypes()">➕ إضافة نوع تذكرة</button></div>
-
-<div class="card"><h3>الإعدادات</h3>
-<label>روم ارسال اللوحة</label><select onchange="cur.channelId=this.value">${opts(meta.channels,p.channelId,'— اختر —')}</select>
-<label>كاتيجوري التذاكر</label><select onchange="cur.categoryId=this.value">${opts(meta.categories,p.categoryId,'— بدون —')}</select>
-<label>رتبة الدعم</label><select onchange="cur.supportRoleId=this.value">${opts(meta.roles,p.supportRoleId,'— اختر —')}</select>
-<label>روم اللوج</label><select onchange="cur.logChannelId=this.value">${opts(meta.channels,p.logChannelId,'— بدون —')}</select></div>
-
-<div class="row"><button onclick="save()">💾 حفظ</button><button class="ok" onclick="save(true)">🚀 حفظ وإرسال / تحديث</button><button class="r" onclick="del()">🗑️ حذف</button></div><br>`}
-function typesHtml(){return cur.types.map((t,i)=>`<div class="type">
-<div class="em">${emojiPrev(t.emoji)}<input placeholder="ايموجي 😀 أو <:name:id>" value="${esc(t.emoji)}" oninput="cur.types[${i}].emoji=this.value" onchange="renderTypes()"></div><br>
-<select onchange="cur.types[${i}].emoji=this.value;renderTypes()"><option value="">اختر ايموجي من سيرفرك</option>${meta.emojis.map(e=>`<option value="${esc(e.code)}">${esc(e.name)}</option>`).join('')}</select>
-<label>الاسم</label><input value="${esc(t.label)}" oninput="cur.types[${i}].label=this.value">
-<label>الوصف</label><input value="${esc(t.description)}" oninput="cur.types[${i}].description=this.value">
-<label>رسالة التذكرة (تظهر داخل الروم عند فتحها)</label><textarea oninput="cur.types[${i}].welcome=this.value">${esc(t.welcome||'')}</textarea>
-<label>الرول المسؤول عن هذا النوع (يتمنشن)</label><select onchange="cur.types[${i}].roleId=this.value">${opts(meta.roles,t.roleId,'— رتبة الدعم العامة —')}</select>
-<br><br><button class="r" onclick="cur.types.splice(${i},1);renderTypes()">حذف</button></div>`).join('')}
-function renderTypes(){$('#types').innerHTML=typesHtml()}
+<section><h2>الرسالة</h2>
+<label>اسم اللوحة (يظهر لك فقط)</label><input value="${esc(p.name)}" oninput="cur.name=this.value">
+<label>العنوان (ابدأه بـ # ليكبر)</label><textarea oninput="set('title',this.value)">${esc(p.title)}</textarea>
+<label>الوصف</label><textarea oninput="set('description',this.value)">${esc(p.description)}</textarea>
+<div class="row2"><div><label>نص القائمة قبل الاختيار</label><input value="${esc(p.placeholder)}" oninput="set('placeholder',this.value)"></div>
+<div><label>لون الشريط الجانبي</label><input type="color" value="${esc(p.color)}" oninput="set('color',this.value)"></div></div>
+<label class="ck"><input type="checkbox" ${p.showReset?'checked':''} onchange="set('showReset',this.checked)">إظهار خيار Reset Menu</label></section>
+<section><h2>الصورة</h2><div class="up"><label class="btn g" style="margin:0;cursor:pointer">رفع من الجوال<input type="file" accept="image/*" onchange="upl(this)"></label>
+<div class="tg"><button class="${p.imagePosition!=='bottom'?'on':''}" onclick="setPos('top')">فوق</button><button class="${p.imagePosition==='bottom'?'on':''}" onclick="setPos('bottom')">تحت</button></div></div>
+<label>أو رابط صورة</label><input placeholder="https://..." value="${esc(p.bannerUrl)}" onchange="cur.bannerUrl=this.value;rerender()">
+${p.bannerUrl?`<img class="thumb" src="${esc(p.bannerUrl)}" alt=""><br><button class="btn er" style="margin-top:10px" onclick="cur.bannerUrl='';rerender()">حذف الصورة</button>`:''}</section>
+<section><h2>رسائل التذكرة</h2>
+<label>1) رسالة الترحيب (أول رسالة في كل تذكرة)</label><textarea placeholder="تم فتح تذكرتك بنجاح 🎫&#10;اكتب طلبك وسيرد عليك الفريق قريباً." oninput="cur.ticketWelcome=this.value">${esc(p.ticketWelcome)}</textarea>
+<p class="sub" style="font-size:12px;margin:6px 0 0">تقدر تستخدم {user} لمنشن صاحب التذكرة، و{role} للرول المسؤول، و{type} لاسم النوع. المنشن يطلع تلقائياً فوق الترحيب.</p></section>
+<section><h2>أنواع التذاكر</h2><div id="types">${typesHtml()}</div><button class="btn g" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:'',welcome:'',roleId:'',_o:true});renderTypes()">+ إضافة نوع تذكرة</button></section>
+<section><h2>الإرسال والصلاحيات</h2>
+<label>الروم اللي تنرسل فيه اللوحة</label><select onchange="cur.channelId=this.value">${opts(meta.channels,p.channelId,'اختر روم')}</select>
+<label>كاتيجوري التذاكر</label><select onchange="cur.categoryId=this.value">${opts(meta.categories,p.categoryId,'بدون كاتيجوري')}</select>
+<label>رتبة الدعم العامة</label><select onchange="cur.supportRoleId=this.value">${opts(meta.roles,p.supportRoleId,'اختر رتبة')}</select>
+<label>روم سجل الإغلاق</label><select onchange="cur.logChannelId=this.value">${opts(meta.channels,p.logChannelId,'بدون سجل')}</select>
+<br><br><button class="btn er" onclick="del()">حذف هذه اللوحة</button></section>`}
+function rerender(){$('.ed').innerHTML=editor()+`<div class="bar"><button class="btn g" onclick="save()">حفظ</button><button class="btn ok" onclick="save(true)">حفظ ونشر في الروم</button></div>`;pv()}
+function setPos(v){cur.imagePosition=v;rerender()}
+function typesHtml(){return cur.types.map((t,i)=>`<details class="ty" ${t._o?'open':''} ontoggle="cur.types[${i}]._o=this.open"><summary><span class="ei">${em(t.emoji)}</span><b id="tl${i}">${esc(t.label||'بدون اسم')}</b><button class="x" title="حذف النوع" onclick="event.preventDefault();cur.types.splice(${i},1);renderTypes()">✕</button></summary><div class="fg">
+<label>الايموجي (عادي أو &lt;:name:id&gt;)</label><div class="row2"><input value="${esc(t.emoji)}" oninput="ty(${i},'emoji',this.value)" onchange="renderTypes()">
+<select onchange="ty(${i},'emoji',this.value);renderTypes()"><option value="">من ايموجيات السيرفر</option>${meta.emojis.map(e=>`<option value="${esc(e.code)}">${esc(e.name)}</option>`).join('')}</select></div>
+<label>الاسم</label><input value="${esc(t.label)}" oninput="ty(${i},'label',this.value)">
+<label>الوصف القصير</label><input value="${esc(t.description)}" oninput="ty(${i},'description',this.value)">
+<label>2) الرسالة الثانية: تنرسل بعد الترحيب لهذا النوع</label><textarea oninput="ty(${i},'welcome',this.value)">${esc(t.welcome||'')}</textarea>
+<label>الرول المسؤول (يتمنشن ويشوف التذكرة)</label><select onchange="ty(${i},'roleId',this.value)">${opts(meta.roles,t.roleId,'رتبة الدعم العامة')}</select></div></details>`).join('')}
+function ty(i,k,v){cur.types[i][k]=v;if(k==='label')$('#tl'+i).textContent=v||'بدون اسم';pv()}
+function renderTypes(){$('#types').innerHTML=typesHtml();pv()}
 async function upl(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);
   const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();
-  if(!r.ok)return toast(d.error||'فشل الرفع');cur.bannerUrl=d.url;render();toast('تم رفع الصورة')}
+  if(!r.ok)return toast(d.error||'فشل الرفع',1);cur.bannerUrl=d.url;rerender();toast('تم رفع الصورة')}
 async function save(send){try{
   const saved=await api(base()+'/panels/'+cur.id,'PUT',cur);
-  if(send){await api(base()+'/panels/'+cur.id+'/send','POST');toast('✅ تم الحفظ والإرسال')}else toast('✅ تم الحفظ');
-  const i=panels.findIndex(p=>p.id===cur.id);panels[i]=cur=saved;render()}catch(e){toast('❌ '+e.message)}}
+  if(send){await api(base()+'/panels/'+cur.id+'/send','POST');toast('تم الحفظ والنشر')}else toast('تم الحفظ');
+  const i=panels.findIndex(p=>p.id===cur.id);panels[i]=cur=saved;render()}catch(e){toast(e.message,1)}}
 async function del(){if(!confirm('حذف هذه اللوحة؟'))return;
   try{await api(base()+'/panels/'+cur.id,'DELETE')}catch(e){}
   panels=panels.filter(p=>p.id!==cur.id);cur=panels[0]||null;render()}
 
+// ===== الردود التلقائية =====
+const crumb=()=>`<div class="crumb"><button class="lnk" onclick="go('servers')">السيرفرات</button>/<b>${esc(sc.guildName)}</b><span>•</span><span>${esc(sc.botName)}</span></div>`;
+const subTabs=()=>`<div class="tg" style="margin-bottom:16px"><button class="${sub==='panels'?'on':''}" onclick="sub='panels';render()">لوحات التذاكر</button><button class="${sub==='auto'?'on':''}" onclick="openAuto()">الردود التلقائية</button></div>`;
+async function openAuto(){try{ars=await api(base()+'/autoreplies');ar=ars[0]||null;sub='auto';render()}catch(e){toast(e.message,1)}}
+const arBar=()=>`<div class="bar"><button class="btn ok" onclick="saveAr()">حفظ الرد</button><button class="btn er" style="flex:none" onclick="delAr()">حذف</button></div>`;
+function autoView(){
+  const chips=ars.map(r=>`<button class="chip ${ar&&r.id===ar.id?'on':''}" onclick="pickAr('${r.id}')">${esc(r.name)}</button>`).join('');
+  shell(crumb()+subTabs()+`<div class="chips">${chips}<button class="chip add" onclick="newAr()">+ رد جديد</button></div>`+(ar?
+  `<div class="ws"><div class="ed">${arEditor()}${arBar()}</div><aside class="pv"><div class="pvh">كذا يرد البوت</div><div id="pv">${arPv()}</div></aside></div>`:
+  `<div class="empty"><b>ما عندك ردود تلقائية</b>اختر روم، واكتب الرد اللي يرسله البوت لأي رسالة تنكتب فيه.<br><br><button class="btn" onclick="newAr()">إنشاء رد</button></div>`))}
+function newAr(){ar={id:uid(),name:'رد جديد',enabled:true,watchChannelId:'',match:'any',keyword:'',replyChannelId:'',replyToMessage:false,deleteTrigger:false,title:'',description:'',color:'#5b6cf0',imageUrl:'',imagePosition:'top'};ars.push(ar);render()}
+function pickAr(id){ar=ars.find(r=>r.id===id);render()}
+const setAr=(k,v)=>{ar[k]=v;$('#pv').innerHTML=arPv()};
+const arRe=()=>{$('.ed').innerHTML=arEditor()+arBar();$('#pv').innerHTML=arPv()};
+function arPv(){const r=ar,img=r.imageUrl?`<img class="bn" src="${esc(r.imageUrl)}" alt="" onerror="this.style.display='none'">`:'';
+  return `<div class="msg"><div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div><div class="ct" style="--c:${esc(r.color)}">${r.imagePosition!=='bottom'?img:''}${r.title?`<div class="t">${md('## '+r.title)}</div>`:''}${r.description?`<div class="d">${md(r.description)}</div>`:''}${r.imagePosition==='bottom'?img:''}</div></div>`}
+function arEditor(){const r=ar,sel=v=>r.match===v?'selected':'';return `
+<section><h2>متى يرد البوت؟</h2>
+<label>اسم الرد (لك فقط)</label><input value="${esc(r.name)}" oninput="ar.name=this.value">
+<label>الروم اللي يراقبه البوت</label><select onchange="ar.watchChannelId=this.value">${opts(meta.channels,r.watchChannelId,'كل الرومات')}</select>
+<div class="row2"><div><label>يرد على</label><select onchange="ar.match=this.value"><option value="any" ${sel('any')}>أي رسالة</option><option value="contains" ${sel('contains')}>رسالة فيها كلمة</option><option value="exact" ${sel('exact')}>رسالة تساوي الكلمة</option></select></div>
+<div><label>الكلمة (افصل بفاصلة لو أكثر)</label><input value="${esc(r.keyword)}" oninput="ar.keyword=this.value"></div></div>
+<label>الروم اللي يرسل فيه الرد</label><select onchange="ar.replyChannelId=this.value">${opts(meta.channels,r.replyChannelId,'نفس روم الرسالة')}</select>
+<label class="ck"><input type="checkbox" ${r.replyToMessage?'checked':''} onchange="ar.replyToMessage=this.checked">يرد على رسالة العضو مباشرة (لو نفس الروم)</label>
+<label class="ck"><input type="checkbox" ${r.deleteTrigger?'checked':''} onchange="ar.deleteTrigger=this.checked">يحذف رسالة العضو بعد الرد</label>
+<label class="ck"><input type="checkbox" ${r.enabled!==false?'checked':''} onchange="ar.enabled=this.checked">الرد شغال</label></section>
+<section><h2>شكل الرد</h2>
+<label>العنوان</label><input value="${esc(r.title)}" oninput="setAr('title',this.value)">
+<label>الوصف (تقدر تكتب {user} لمنشن صاحب الرسالة، و{channel} للروم)</label><textarea oninput="setAr('description',this.value)">${esc(r.description)}</textarea>
+<label>لون الشريط الجانبي</label><input type="color" value="${esc(r.color)}" oninput="setAr('color',this.value)"></section>
+<section><h2>الصورة</h2><div class="up"><label class="btn g" style="margin:0;cursor:pointer">رفع من الجوال<input type="file" accept="image/*" onchange="uplAr(this)"></label>
+<div class="tg"><button class="${r.imagePosition!=='bottom'?'on':''}" onclick="ar.imagePosition='top';arRe()">فوق</button><button class="${r.imagePosition==='bottom'?'on':''}" onclick="ar.imagePosition='bottom';arRe()">تحت</button></div></div>
+<label>أو رابط صورة</label><input placeholder="https://..." value="${esc(r.imageUrl)}" onchange="ar.imageUrl=this.value;arRe()">
+${r.imageUrl?`<img class="thumb" src="${esc(r.imageUrl)}" alt=""><br><button class="btn er" style="margin-top:10px" onclick="ar.imageUrl='';arRe()">حذف الصورة</button>`:''}</section>`}
+async function uplAr(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);
+  const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();
+  if(!r.ok)return toast(d.error||'فشل الرفع',1);ar.imageUrl=d.url;arRe();toast('تم رفع الصورة')}
+async function saveAr(){try{const saved=await api(base()+'/autoreplies/'+ar.id,'PUT',ar);const i=ars.findIndex(r=>r.id===ar.id);ars[i]=ar=saved;toast('تم حفظ الرد');render()}catch(e){toast(e.message,1)}}
+async function delAr(){if(!confirm('حذف هذا الرد؟'))return;try{await api(base()+'/autoreplies/'+ar.id,'DELETE')}catch(e){}
+  ars=ars.filter(r=>r.id!==ar.id);ar=ars[0]||null;render()}
+
 // ===== البوتات (المالك) =====
 async function openBots(){bots=await api('/api/bots');view='bots';render()}
-function botsHtml(){return `<div class="card"><h3>إضافة بوت جديد</h3><label>Token البوت</label><input id="tk" type="password" placeholder="الصق التوكن هنا"><br><br><button class="ok" onclick="addBot()">➕ إضافة وتفعيل</button>
-<p style="color:var(--mut);font-size:13px">كل توكن له بياناته ولوحاته المنفصلة. بعد الإضافة ادعُ البوت للسيرفر، وصاحب السيرفر يدخل بحساب ديسكورد ويتحكم فيه.</p></div>`+
-bots.map(b=>`<div class="card"><div class="em">${b.avatar?`<img src="${esc(b.avatar)}" style="border-radius:50%">`:''}<b>${esc(b.name)}</b><span>${b.status==='online'?'🟢':b.status==='error'?'🔴':'🟡'}</span><small style="color:var(--mut)">${b.guilds??0} سيرفر</small></div>${b.error?`<p>${esc(b.error)}</p>`:''}<br><div class="row">${b.invite?`<a href="${esc(b.invite)}" target="_blank"><button class="g" style="width:100%">📨 دعوة للسيرفر</button></a>`:''}${b.main?'':`<button class="r" onclick="delBot('${b.id}')">حذف</button>`}</div></div>`).join('')}
-async function addBot(){try{await api('/api/bots','POST',{token:$('#tk').value});bots=await api('/api/bots');toast('✅ تم تفعيل البوت');render()}catch(e){toast('❌ '+e.message)}}
+function botsView(){shell(`<h1>البوتات</h1><p class="sub">كل توكن بوت له بياناته ولوحاته المنفصلة.</p>
+<div class="bot-row"><div class="i"><label style="margin-top:0">توكن بوت جديد</label><input id="tk" type="password" placeholder="الصق التوكن هنا"></div><button class="btn ok" onclick="addBot()">إضافة وتشغيل</button></div>`+
+bots.map(b=>`<div class="bot-row">${b.avatar?`<img src="${esc(b.avatar)}" alt="">`:''}<div class="i"><b><span class="dot" style="background:${b.status==='online'?'var(--ok)':b.status==='error'?'var(--er)':'#ffd166'}"></span>${esc(b.name)}</b><br><small style="color:var(--mu)">${b.guilds??0} سيرفر</small>${b.error?`<div style="color:var(--er)">${esc(b.error)}</div>`:''}${b.warn?`<div style="color:#ffd166;font-size:13px">${esc(b.warn)}</div>`:''}</div>${b.invite?`<a href="${esc(b.invite)}" target="_blank" rel="noopener"><button class="btn g">دعوة للسيرفر</button></a>`:''}${b.main?'':`<button class="btn er" onclick="delBot('${b.id}')">حذف</button>`}</div>`).join(''))}
+async function addBot(){try{await api('/api/bots','POST',{token:$('#tk').value});bots=await api('/api/bots');toast('تم تشغيل البوت');render()}catch(e){toast(e.message,1)}}
 async function delBot(id){if(!confirm('حذف البوت وكل بياناته؟'))return;await api('/api/bots/'+id,'DELETE');bots=await api('/api/bots');render()}
 
 boot().then(()=>{if(!$('#app').innerHTML)loginScreen()});

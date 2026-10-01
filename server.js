@@ -136,7 +136,7 @@ module.exports = () => {
     id: str(b.id, 40), guildId: g.id, name: str(b.name, 60), title: str(b.title, 500), description: str(b.description, 1500),
     placeholder: str(b.placeholder, 100), bannerUrl: str(b.bannerUrl, 500),
     imagePosition: b.imagePosition === 'bottom' ? 'bottom' : 'top', color: str(b.color, 9) || '#2b3a67',
-    showReset: b.showReset !== false,
+    showReset: b.showReset !== false, ticketWelcome: str(b.ticketWelcome, 1000),
     channelId: g.channels.cache.has(b.channelId) ? b.channelId : '',
     categoryId: g.channels.cache.has(b.categoryId) ? b.categoryId : '',
     logChannelId: g.channels.cache.has(b.logChannelId) ? b.logChannelId : '',
@@ -169,6 +169,33 @@ module.exports = () => {
     if (!p) return res.status(404).json({ error: 'اللوحة غير موجودة' });
     try { await sendPanel(req.e.client, req.params.botId, p); res.json({ ok: true }); }
     catch (err) { res.status(400).json({ error: err.message }); }
+  });
+
+  // ===== الردود التلقائية =====
+  const arAll = b => store.kv.get(b, 'autoreplies', []);
+  const cleanAr = (b, g) => ({
+    id: str(b.id, 40), guildId: g.id, name: str(b.name, 60) || 'رد', enabled: b.enabled !== false,
+    watchChannelId: g.channels.cache.has(b.watchChannelId) ? b.watchChannelId : '',
+    match: ['any', 'contains', 'exact'].includes(b.match) ? b.match : 'any', keyword: str(b.keyword, 200),
+    replyChannelId: g.channels.cache.has(b.replyChannelId) ? b.replyChannelId : '',
+    replyToMessage: !!b.replyToMessage, deleteTrigger: !!b.deleteTrigger,
+    title: str(b.title, 256), description: str(b.description, 3000), color: str(b.color, 9) || '#5b6cf0',
+    imageUrl: /^https?:\/\//.test(b.imageUrl || '') ? str(b.imageUrl, 500) : '', imagePosition: b.imagePosition === 'bottom' ? 'bottom' : 'top'
+  });
+  app.get(S + '/autoreplies', auth, scope, (req, res) =>
+    res.json(arAll(req.params.botId).filter(r => r.guildId === req.g.id)));
+  app.put(S + '/autoreplies/:id', auth, scope, (req, res) => {
+    const l = arAll(req.params.botId), i = l.findIndex(r => r.id === req.params.id);
+    if (i >= 0 && l[i].guildId !== req.g.id) return res.status(403).json({ error: 'ممنوع' });
+    if (i < 0 && l.filter(r => r.guildId === req.g.id).length >= 25) return res.status(400).json({ error: 'الحد الأقصى 25 رد' });
+    const r = cleanAr({ ...req.body, id: req.params.id }, req.g);
+    i >= 0 ? (l[i] = r) : l.push(r);
+    store.kv.set(req.params.botId, 'autoreplies', l); res.json(r);
+  });
+  app.delete(S + '/autoreplies/:id', auth, scope, (req, res) => {
+    const l = arAll(req.params.botId);
+    store.kv.set(req.params.botId, 'autoreplies', l.filter(r => !(r.id === req.params.id && r.guildId === req.g.id)));
+    res.json({ ok: true });
   });
 
   app.listen(process.env.PORT || 3000, () => console.log(`الداشبورد يعمل على المنفذ ${process.env.PORT || 3000}`));
