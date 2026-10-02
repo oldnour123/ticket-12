@@ -5,7 +5,7 @@ const store = require('./store'), { sendPanel } = require('./ui'), bots = requir
 module.exports = () => {
   const app = express();
   app.set('trust proxy', 1);
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '8mb' }));
 
   const PUBLIC = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
   const OWNERS = (process.env.OWNER_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -98,6 +98,25 @@ module.exports = () => {
     await bots.stop(req.params.id); store.bots.remove(req.params.id); store.dropBot(req.params.id); res.json({ ok: true });
   });
 
+  // ===== نقل البيانات بين الاستضافات (للمالك) =====
+  const DATA = path.join(store.ROOT, 'data');
+  app.get('/api/export', auth, adminOnly, (req, res) => {
+    const fs = require('fs'), out = {};
+    try { for (const f of fs.readdirSync(DATA)) if (/^[\w-]+\.json$/.test(f)) out[f] = JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch {}
+    res.setHeader('Content-Disposition', 'attachment; filename=store-bot-backup.json');
+    res.json(out);
+  });
+  app.post('/api/import', auth, adminOnly, (req, res) => {
+    const fs = require('fs'); fs.mkdirSync(DATA, { recursive: true });
+    let n = 0;
+    for (const [f, v] of Object.entries(req.body || {})) {
+      if (!/^[\w-]+\.json$/.test(f)) continue;
+      fs.writeFileSync(path.join(DATA, f), JSON.stringify(v, null, 2)); n++;
+    }
+    for (const b of store.bots.all()) if (!bots.get(b.id)) bots.start(b);
+    res.json({ ok: true, files: n });
+  });
+
   // ===== السيرفرات: اللي أنت تديرها وفيها بوت =====
   app.get('/api/servers', auth, (req, res) => {
     const out = [];
@@ -136,7 +155,10 @@ module.exports = () => {
     id: str(b.id, 40), guildId: g.id, name: str(b.name, 60), title: str(b.title, 500), description: str(b.description, 1500),
     placeholder: str(b.placeholder, 100), bannerUrl: str(b.bannerUrl, 500),
     imagePosition: b.imagePosition === 'bottom' ? 'bottom' : 'top', color: str(b.color, 9) || '#2b3a67',
-    showReset: b.showReset !== false, ticketWelcome: str(b.ticketWelcome, 1000),
+    showReset: b.showReset !== false, ticketTop: str(b.ticketTop, 500), ticketTitle: str(b.ticketTitle, 300), ticketDesc: str(b.ticketDesc ?? b.ticketWelcome, 1500),
+    ticketBanner: /^https?:\/\//.test(b.ticketBanner || '') ? str(b.ticketBanner, 500) : '', afterImage: /^https?:\/\//.test(b.afterImage || '') ? str(b.afterImage, 500) : '',
+    showTools: b.showTools !== false,
+    links: (Array.isArray(b.links) ? b.links : []).slice(0, 5).map(l => ({ label: str(l.label, 80), url: /^https?:\/\//.test(l.url || '') ? str(l.url, 500) : '', emoji: str(l.emoji, 80) })).filter(l => l.label && l.url),
     channelId: g.channels.cache.has(b.channelId) ? b.channelId : '',
     categoryId: g.channels.cache.has(b.categoryId) ? b.categoryId : '',
     logChannelId: g.channels.cache.has(b.logChannelId) ? b.logChannelId : '',
@@ -144,7 +166,15 @@ module.exports = () => {
     messageId: old?.messageId || '',
     types: (Array.isArray(b.types) ? b.types : []).slice(0, 24).map(t => ({
       id: str(t.id, 30), label: str(t.label, 100) || 'بدون اسم', description: str(t.description, 100), emoji: str(t.emoji, 80),
-      welcome: str(t.welcome, 1500), roleId: g.roles.cache.has(t.roleId) ? t.roleId : ''
+      welcome: str(t.welcome, 1500), roleId: g.roles.cache.has(t.roleId) ? t.roleId : '',
+      extras: (Array.isArray(t.extras) ? t.extras : []).slice(0, 3).map(x => ({
+        id: str(x.id, 30) || crypto.randomBytes(4).toString('hex'), kind: x.kind === 'buttons' ? 'buttons' : 'select',
+        title: str(x.title, 100), description: str(x.description, 500), placeholder: str(x.placeholder, 100),
+        items: (Array.isArray(x.items) ? x.items : []).slice(0, x.kind === 'buttons' ? 5 : 25).map(it => ({
+          id: str(it.id, 30) || crypto.randomBytes(4).toString('hex'), label: str(it.label, 80) || 'خيار',
+          description: str(it.description, 100), emoji: str(it.emoji, 80), response: str(it.response, 1500)
+        }))
+      }))
     }))
   });
   const own = (req, res) => { // يتأكد أن اللوحة لنفس السيرفر

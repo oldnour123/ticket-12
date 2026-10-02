@@ -66,6 +66,7 @@ input[type=color]{width:52px;height:38px;border:1px solid var(--ln);border-radiu
 .bot-row img{width:44px;height:44px;border-radius:50%}.bot-row .i{flex:1;min-width:140px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px}
 #toast{position:fixed;bottom:84px;left:50%;transform:translate(-50%,20px);background:#1fa37a;padding:10px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:9}
 #toast.show{opacity:1;transform:translate(-50%,0)}#toast.bad{background:#c94a5d}
+.mn{background:#5865f240;color:#c9cdfb;border-radius:3px;padding:0 3px}.bt{display:inline-block;background:#4e5058;color:#fff;border-radius:6px;padding:6px 12px;font-size:14px}
 @media(max-width:900px){.ws{grid-template-columns:1fr}.seg{display:flex}.ws[data-t=edit] .pv,.ws[data-t=pv] .ed{display:none}.pv{position:static}.top{padding:10px 14px}.usr span{display:none}main{padding:18px 14px 30px}.row2{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style></head><body>
@@ -103,20 +104,33 @@ function render(){view==='bots'?botsView():view==='panels'?panelsView():serversV
 // ===== السيرفرات =====
 function serversView(){shell(`<h1>سيرفراتك</h1><p class="sub">السيرفرات اللي تديرها وفيها بوت. اختر واحد وابدأ.</p>`+(servers.length?`<div class="grid">${servers.map((s,i)=>`<button class="sv" onclick="openServer(${i})">${s.icon?`<img src="${esc(s.icon)}" alt="">`:`<span class="ph">${esc(s.guildName[0])}</span>`}<span><b>${esc(s.guildName)}</b><small>${esc(s.botName)}</small></span></button>`).join('')}</div>`:
 `<div class="empty"><b>ما لقينا سيرفر جاهز</b>تأكد أنك مالك السيرفر أو عندك صلاحية Manage Server، وأن البوت مدعو له.</div>`))}
-async function openServer(i){try{sc=servers[i];panels=await api(base()+'/panels');cur=panels[0]||null;meta=await api(base()+'/meta');view='panels';tab='edit';sub='panels';render()}catch(e){toast(e.message,1)}}
+async function openServer(i){try{sc=servers[i];panels=(await api(base()+'/panels')).map(norm);cur=panels[0]||null;meta=await api(base()+'/meta');view='panels';tab='edit';sub='panels';render()}catch(e){toast(e.message,1)}}
 
 // ===== اللوحات =====
 const opts=(l,sel,ph)=>`<option value="">${ph}</option>`+l.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(x.name)}</option>`).join('');
 function em(c){c=(c||'').trim();const m=/^<(a?):\w+:(\d+)>$/.exec(c);return m?`<img class="ce" src="https://cdn.discordapp.com/emojis/${m[2]}.${m[1]?'gif':'png'}" alt="">`:esc(c)}
 function md(t){return esc(t).split('\n').map(l=>/^#{1,3} /.test(l)?`<div class="h">${l.replace(/^#{1,3} /,'')}</div>`:`<div>${l||'&nbsp;'}</div>`).join('')
   .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/&lt;(a?):\w+:(\d+)&gt;/g,(_,a,id)=>`<img class="ce" src="https://cdn.discordapp.com/emojis/${id}.${a?'gif':'png'}" alt="">`)}
-function newPanel(){cur={id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#5b6cf0',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:'',_o:true}]};panels.push(cur);render()}
+const norm=p=>{p.links=p.links||[];p.showTools=p.showTools!==false;p.types.forEach(t=>t.extras=t.extras||[]);return p};
+function newPanel(){cur={links:[],showTools:true,ticketTop:'Hello {user}',ticketTitle:'✅ تم فتح تذكرة {type} بنجاح',ticketDesc:'انتظر الفريق، سيساعدك قريباً.',ticketBanner:'',afterImage:'',id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#5b6cf0',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:'',extras:[],_o:true}]};panels.push(cur);render()}
 function pick(id){cur=panels.find(p=>p.id===id);render()}
 function tabTo(t){tab=t;$('.ws').dataset.t=t;document.querySelectorAll('.seg button').forEach((b,i)=>b.classList.toggle('on',(i?'pv':'edit')===t))}
 function pvHtml(){const p=cur,img=p.bannerUrl?`<img class="bn" src="${esc(p.bannerUrl)}" alt="" onerror="this.style.display='none'">`:'';
   const ops=p.types.map(t=>`<div class="op"><span>${em(t.emoji)}</span><div><b>${esc(t.label||'بدون اسم')}</b><small>${esc(t.description)}</small></div></div>`).join('')+(p.showReset?`<div class="op"><span>🔄</span><div><b>Reset Menu</b><small>إعادة ضبط القائمة</small></div></div>`:'');
-  return `<div class="msg"><div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div><div class="ct" style="--c:${esc(p.color)}">${p.imagePosition!=='bottom'?img:''}<div class="t">${md(p.title)}</div><hr><div class="d">${md(p.description)}</div><div class="sel" onclick="this.classList.toggle('open')"><span>${esc(p.placeholder)}</span><span>⌄</span></div><div class="ops">${ops}</div>${p.imagePosition==='bottom'?img:''}</div></div><p class="sub" style="font-size:12px;margin-top:10px">اضغط على القائمة لتشوف الخيارات.</p>`}
-const pv=()=>{const e=$('#pv');if(e){const o=e.querySelector('.sel')?.classList.contains('open');e.innerHTML=pvHtml();if(o)e.querySelector('.sel').classList.add('open')}};
+  return `<div class="msg"><div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div><div class="ct" style="--c:${esc(p.color)}">${p.imagePosition!=='bottom'?img:''}<div class="t">${md(p.title)}</div><hr><div class="d">${md(p.description)}</div><div class="sel" onclick="this.classList.toggle('open')"><span>${esc(p.placeholder)}</span><span>⌄</span></div><div class="ops">${ops}</div>${p.imagePosition==='bottom'?img:''}${(p.links||[]).length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">${p.links.map(l=>`<span class="sel" style="margin:0;padding:6px 12px">${em(l.emoji)} ${esc(l.label)} ↗</span>`).join('')}</div>`:''}</div></div><p class="sub" style="font-size:12px;margin-top:10px">اضغط على القائمة لتشوف الخيارات.</p>`}
+let pvMode='panel',pvt=0;
+function setPvm(m){pvMode=m;document.querySelectorAll('.pvh .tg button').forEach((b,i)=>b.classList.toggle('on',(i?'ticket':'panel')===m));pv()}
+function tvHtml(){const p=cur,t=p.types[Math.min(pvt,p.types.length-1)];if(!t)return '<p class="sub">أضف نوع تذكرة أولاً</p>';
+  const f=s=>String(s||'').replace(/\{user\}/g,'@العميل').replace(/\{role\}/g,'@الفريق').replace(/\{type\}/g,t.label).replace(/\{number\}/g,'1');
+  const mn=h=>h.replace(/@(العميل|الفريق)/g,'<span class="mn">@$1</span>'),sel=ph=>`<div class="sel"><span>${esc(ph)}</span><span>⌄</span></div>`;
+  const img=u=>`<img class="bn" src="${esc(u)}" alt="" onerror="this.style.display='none'">`;
+  const ex=(t.extras||[]).filter(x=>x.items.length).map(x=>`<hr><div class="t">${md('## '+(x.title||'خيارات'))}</div>${x.description?`<div class="d">${esc(x.description)}</div>`:''}`+(x.kind==='buttons'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${x.items.map(it=>`<span class="bt">${em(it.emoji)} ${esc(it.label)}</span>`).join('')}</div>`:sel(x.placeholder||'اختر'))).join('');
+  const bot=`<div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div>`;
+  return `<select onchange="pvt=+this.value;pv()" style="margin-bottom:10px">${p.types.map((x,i)=>`<option value="${i}" ${i===pvt?'selected':''}>${esc(x.label||'بدون اسم')}</option>`).join('')}</select>
+<div class="msg">${bot}<div class="ct" style="--c:${esc(p.color)}"><div class="d">${mn(md(f(p.ticketTop||'Hello {user}')))}</div><hr>${p.ticketBanner?img(p.ticketBanner):''}<div class="t">${mn(md('## '+f(p.ticketTitle||'✅ تم فتح تذكرة {type} بنجاح')))}</div><div class="d">${mn(md(f(p.ticketDesc||'انتظر الفريق، سيساعدك قريباً.')))}</div>
+<div class="d" style="margin-top:8px">👥 <b>العميل:</b> <span class="mn">@العميل</span><br>ℹ️ <b>القسم:</b> ${esc(t.label)}<br>🔖 <b>رقم التذكرة:</b> #1<br>⏳ <b>وقت الإنشاء:</b> الآن<br>🛡️ <b>الفريق المسؤول:</b> <span class="mn">@الفريق</span></div>${ex}${p.showTools!==false?`<hr>${sel('أدوات التذكرة')}`:''}<hr><span class="bt" style="background:#da373c">🔒 إغلاق التذكرة</span></div></div>
+<div class="msg" style="margin-top:10px"><div class="d">${mn(md(f(t.welcome||'🙋 فريق الدعم: اضغط **استلام التذكرة** لاستلامها.')))}</div><span class="bt" style="background:#248046;margin-top:8px">🙋 استلام التذكرة</span></div>${p.afterImage?`<div class="msg" style="margin-top:10px">${img(p.afterImage).replace('class="bn"','class="bn" style="margin:0"')}</div>`:''}`}
+const pv=()=>{const e=$('#pv');if(e){const o=e.querySelector('.sel')?.classList.contains('open');e.innerHTML=pvMode==='ticket'?tvHtml():pvHtml();if(o)e.querySelector('.sel').classList.add('open')}};
 const set=(k,v)=>{cur[k]=v;pv()};
 function panelsView(){
   if(sub==='auto')return autoView();
@@ -124,7 +138,7 @@ function panelsView(){
   shell(`<div class="crumb"><button class="lnk" onclick="go('servers')">السيرفرات</button>/<b>${esc(sc.guildName)}</b><span>•</span><span>${esc(sc.botName)}</span></div>${subTabs()}<div class="chips">${chips}<button class="chip add" onclick="newPanel()">+ لوحة جديدة</button></div>`+(cur?
   `<div class="seg"><button class="${tab==='edit'?'on':''}" onclick="tabTo('edit')">تعديل</button><button class="${tab==='pv'?'on':''}" onclick="tabTo('pv')">معاينة</button></div>
   <div class="ws" data-t="${tab}"><div class="ed">${editor()}<div class="bar"><button class="btn g" onclick="save()">حفظ</button><button class="btn ok" onclick="save(true)">حفظ ونشر في الروم</button></div></div>
-  <aside class="pv"><div class="pvh">كذا تظهر الرسالة في ديسكورد</div><div id="pv">${pvHtml()}</div></aside></div>`:
+  <aside class="pv"><div class="pvh"><div class="tg"><button class="${pvMode!=='ticket'?'on':''}" onclick="setPvm('panel')">اللوحة</button><button class="${pvMode==='ticket'?'on':''}" onclick="setPvm('ticket')">التذكرة</button></div></div><div id="pv">${pvMode==='ticket'?tvHtml():pvHtml()}</div></aside></div>`:
   `<div class="empty"><b>ما عندك لوحات بعد</b>اللوحة رسالة فيها قائمة اختيار، وكل خيار يفتح تذكرة لصاحبه.<br><br><button class="btn" onclick="newPanel()">إنشاء أول لوحة</button></div>`))}
 function editor(){const p=cur;return `
 <section><h2>الرسالة</h2>
@@ -138,10 +152,16 @@ function editor(){const p=cur;return `
 <div class="tg"><button class="${p.imagePosition!=='bottom'?'on':''}" onclick="setPos('top')">فوق</button><button class="${p.imagePosition==='bottom'?'on':''}" onclick="setPos('bottom')">تحت</button></div></div>
 <label>أو رابط صورة</label><input placeholder="https://..." value="${esc(p.bannerUrl)}" onchange="cur.bannerUrl=this.value;rerender()">
 ${p.bannerUrl?`<img class="thumb" src="${esc(p.bannerUrl)}" alt=""><br><button class="btn er" style="margin-top:10px" onclick="cur.bannerUrl='';rerender()">حذف الصورة</button>`:''}</section>
-<section><h2>رسائل التذكرة</h2>
-<label>1) رسالة الترحيب (أول رسالة في كل تذكرة)</label><textarea placeholder="تم فتح تذكرتك بنجاح 🎫&#10;اكتب طلبك وسيرد عليك الفريق قريباً." oninput="cur.ticketWelcome=this.value">${esc(p.ticketWelcome)}</textarea>
-<p class="sub" style="font-size:12px;margin:6px 0 0">تقدر تستخدم {user} لمنشن صاحب التذكرة، و{role} للرول المسؤول، و{type} لاسم النوع. المنشن يطلع تلقائياً فوق الترحيب.</p></section>
-<section><h2>أنواع التذاكر</h2><div id="types">${typesHtml()}</div><button class="btn g" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:'',welcome:'',roleId:'',_o:true});renderTypes()">+ إضافة نوع تذكرة</button></section>
+<section><h2>أزرار الروابط (تحت القائمة)</h2><div id="links">${linksHtml()}</div><button class="btn g" onclick="if(cur.links.length<5){cur.links.push({label:'',url:'',emoji:''});rerender()}">+ إضافة زر رابط</button></section>
+<section><h2>رسالة التذكرة (كونتينر)</h2>
+<label>أول سطر (مثل Hello {user})</label><input value="${esc(p.ticketTop)}" oninput="cur.ticketTop=this.value">
+${imgField('ticketBanner','صورة الكونتينر')}
+<label>العنوان (يقبل {type} {user} {number})</label><input value="${esc(p.ticketTitle)}" oninput="cur.ticketTitle=this.value">
+<label>الوصف</label><textarea oninput="cur.ticketDesc=this.value">${esc(p.ticketDesc)}</textarea>
+<p class="sub" style="font-size:12px">تحتها تطلع تلقائياً: العميل، القسم، رقم التذكرة، وقت الإنشاء، والفريق المسؤول (يتمنشن).</p>
+<label class="ck"><input type="checkbox" ${p.showTools!==false?'checked':''} onchange="cur.showTools=this.checked">إظهار قائمة أدوات التذكرة (إضافة/حذف شخص، تغيير الاسم، القفل)</label>
+${imgField('afterImage','صورة أو خط فاصل يُرسل بعد زر الاستلام')}</section>
+<section><h2>أنواع التذاكر</h2><div id="types">${typesHtml()}</div><button class="btn g" onclick="cur.types.push({id:uid(),label:'',description:'',emoji:'',welcome:'',roleId:'',extras:[],_o:true});renderTypes()">+ إضافة نوع تذكرة</button></section>
 <section><h2>الإرسال والصلاحيات</h2>
 <label>الروم اللي تنرسل فيه اللوحة</label><select onchange="cur.channelId=this.value">${opts(meta.channels,p.channelId,'اختر روم')}</select>
 <label>كاتيجوري التذاكر</label><select onchange="cur.categoryId=this.value">${opts(meta.categories,p.categoryId,'بدون كاتيجوري')}</select>
@@ -155,8 +175,24 @@ function typesHtml(){return cur.types.map((t,i)=>`<details class="ty" ${t._o?'op
 <select onchange="ty(${i},'emoji',this.value);renderTypes()"><option value="">من ايموجيات السيرفر</option>${meta.emojis.map(e=>`<option value="${esc(e.code)}">${esc(e.name)}</option>`).join('')}</select></div>
 <label>الاسم</label><input value="${esc(t.label)}" oninput="ty(${i},'label',this.value)">
 <label>الوصف القصير</label><input value="${esc(t.description)}" oninput="ty(${i},'description',this.value)">
-<label>2) الرسالة الثانية: تنرسل بعد الترحيب لهذا النوع</label><textarea oninput="ty(${i},'welcome',this.value)">${esc(t.welcome||'')}</textarea>
-<label>الرول المسؤول (يتمنشن ويشوف التذكرة)</label><select onchange="ty(${i},'roleId',this.value)">${opts(meta.roles,t.roleId,'رتبة الدعم العامة')}</select></div></details>`).join('')}
+<label>الرسالة النصية بعد الكونتينر (بدون امبد، وتحتها زر الاستلام)</label><textarea oninput="ty(${i},'welcome',this.value)">${esc(t.welcome||'')}</textarea>
+<label>الرول المسؤول (يتمنشن ويشوف التذكرة)</label><select onchange="ty(${i},'roleId',this.value)">${opts(meta.roles,t.roleId,'رتبة الدعم العامة')}</select>
+<label>أقسام إضافية داخل التذكرة (قائمة أو أزرار، مثل طرق الدفع)</label>${extrasHtml(i)}</div></details>`).join('')}
+function linksHtml(){return cur.links.map((l,i)=>`<div class="row2" style="margin-bottom:10px"><input placeholder="اسم الزر" value="${esc(l.label)}" oninput="cur.links[${i}].label=this.value;pv()"><input placeholder="https://..." value="${esc(l.url)}" oninput="cur.links[${i}].url=this.value"><input placeholder="ايموجي (اختياري)" value="${esc(l.emoji)}" onchange="cur.links[${i}].emoji=this.value;pv()"><button class="btn er" onclick="cur.links.splice(${i},1);rerender()">حذف</button></div>`).join('')}
+function imgField(k,lb){return `<label>${lb}</label><div class="up"><label class="btn g" style="margin:0;cursor:pointer">رفع صورة<input type="file" accept="image/*" onchange="uplK(this,'${k}')"></label><input style="flex:1" placeholder="أو رابط https://..." value="${esc(cur[k])}" onchange="cur['${k}']=this.value;rerender()"></div>${cur[k]?`<img class="thumb" src="${esc(cur[k])}" alt="" style="max-height:90px"> <button class="x" onclick="cur['${k}']='';rerender()">حذف</button>`:''}`}
+async function uplK(inp,k){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();if(!r.ok)return toast(d.error||'فشل الرفع',1);cur[k]=d.url;rerender();toast('تم رفع الصورة')}
+const xs=(i,j,k,v)=>{cur.types[i].extras[j][k]=v},is=(i,j,n,k,v)=>{cur.types[i].extras[j].items[n][k]=v};
+function extrasHtml(i){const t=cur.types[i];return t.extras.map((x,j)=>`<div class="ty" style="padding:12px;margin:8px 0">
+<div class="row2"><div><label>النوع</label><select onchange="xs(${i},${j},'kind',this.value);renderTypes()"><option value="select" ${x.kind!=='buttons'?'selected':''}>قائمة اختيار</option><option value="buttons" ${x.kind==='buttons'?'selected':''}>أزرار (حد أقصى 5)</option></select></div>
+<div><label>العنوان (مثل 💳 طريقة الدفع)</label><input value="${esc(x.title)}" oninput="xs(${i},${j},'title',this.value)"></div></div>
+<label>الوصف</label><input value="${esc(x.description)}" oninput="xs(${i},${j},'description',this.value)">
+${x.kind!=='buttons'?`<label>نص القائمة</label><input value="${esc(x.placeholder)}" oninput="xs(${i},${j},'placeholder',this.value)">`:''}
+${x.items.map((it,n)=>`<div class="type"><div class="row2"><input placeholder="الاسم (مثل PayPal)" value="${esc(it.label)}" oninput="is(${i},${j},${n},'label',this.value)"><input placeholder="ايموجي" value="${esc(it.emoji)}" oninput="is(${i},${j},${n},'emoji',this.value)"></div><select style="margin-top:8px" onchange="is(${i},${j},${n},'emoji',this.value);renderTypes()"><option value="">أو اختر ايموجي من السيرفر</option>${meta.emojis.map(e=>`<option value="${esc(e.code)}">${esc(e.name)}</option>`).join('')}</select>
+${x.kind!=='buttons'?`<input style="margin-top:8px" placeholder="وصف قصير" value="${esc(it.description)}" oninput="is(${i},${j},${n},'description',this.value)">`:''}
+<textarea style="margin-top:8px" placeholder="الرسالة اللي تنكتب لما يختاره (مثل بيانات التحويل). والروم يتسمى: القسم-الخيار" oninput="is(${i},${j},${n},'response',this.value)">${esc(it.response)}</textarea>
+<button class="x" onclick="cur.types[${i}].extras[${j}].items.splice(${n},1);renderTypes()">حذف الخيار</button></div>`).join('')}
+<button class="btn g" style="margin-top:8px" onclick="cur.types[${i}].extras[${j}].items.push({id:uid(),label:'',description:'',emoji:'',response:''});renderTypes()">+ خيار</button>
+<button class="x" onclick="cur.types[${i}].extras.splice(${j},1);renderTypes()">حذف هذا القسم</button></div>`).join('')+(t.extras.length<3?`<button class="btn g" onclick="cur.types[${i}].extras.push({id:uid(),kind:'select',title:'💳 طريقة الدفع',description:'اختر طريقة الدفع من القائمة بالأسفل.',placeholder:'اختر طريقة الدفع',items:[]});renderTypes()">+ إضافة قسم إضافي</button>`:'')}
 function ty(i,k,v){cur.types[i][k]=v;if(k==='label')$('#tl'+i).textContent=v||'بدون اسم';pv()}
 function renderTypes(){$('#types').innerHTML=typesHtml();pv()}
 async function upl(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);
@@ -165,7 +201,7 @@ async function upl(inp){const f=inp.files[0];if(!f)return;const fd=new FormData(
 async function save(send){try{
   const saved=await api(base()+'/panels/'+cur.id,'PUT',cur);
   if(send){await api(base()+'/panels/'+cur.id+'/send','POST');toast('تم الحفظ والنشر')}else toast('تم الحفظ');
-  const i=panels.findIndex(p=>p.id===cur.id);panels[i]=cur=saved;render()}catch(e){toast(e.message,1)}}
+  const i=panels.findIndex(p=>p.id===cur.id);panels[i]=cur=norm(saved);render()}catch(e){toast(e.message,1)}}
 async function del(){if(!confirm('حذف هذه اللوحة؟'))return;
   try{await api(base()+'/panels/'+cur.id,'DELETE')}catch(e){}
   panels=panels.filter(p=>p.id!==cur.id);cur=panels[0]||null;render()}
@@ -215,7 +251,8 @@ async function delAr(){if(!confirm('حذف هذا الرد؟'))return;try{await 
 async function openBots(){bots=await api('/api/bots');view='bots';render()}
 function botsView(){shell(`<h1>البوتات</h1><p class="sub">كل توكن بوت له بياناته ولوحاته المنفصلة.</p>
 <div class="bot-row"><div class="i"><label style="margin-top:0">توكن بوت جديد</label><input id="tk" type="password" placeholder="الصق التوكن هنا"></div><button class="btn ok" onclick="addBot()">إضافة وتشغيل</button></div>`+
-bots.map(b=>`<div class="bot-row">${b.avatar?`<img src="${esc(b.avatar)}" alt="">`:''}<div class="i"><b><span class="dot" style="background:${b.status==='online'?'var(--ok)':b.status==='error'?'var(--er)':'#ffd166'}"></span>${esc(b.name)}</b><br><small style="color:var(--mu)">${b.guilds??0} سيرفر</small>${b.error?`<div style="color:var(--er)">${esc(b.error)}</div>`:''}${b.warn?`<div style="color:#ffd166;font-size:13px">${esc(b.warn)}</div>`:''}</div>${b.invite?`<a href="${esc(b.invite)}" target="_blank" rel="noopener"><button class="btn g">دعوة للسيرفر</button></a>`:''}${b.main?'':`<button class="btn er" onclick="delBot('${b.id}')">حذف</button>`}</div>`).join(''))}
+`<div class="bot-row"><div class="i"><b>نقل البيانات لاستضافة ثانية</b><br><small style="color:var(--mu)">نسخة فيها اللوحات والبوتات والردود. الصور المرفوعة تحتاج رفع من جديد.</small></div><a href="/api/export" download><button class="btn g">تنزيل نسخة</button></a><label class="btn g" style="margin:0;cursor:pointer">استيراد نسخة<input type="file" accept=".json" style="display:none" onchange="impData(this)"></label></div>`+bots.map(b=>`<div class="bot-row">${b.avatar?`<img src="${esc(b.avatar)}" alt="">`:''}<div class="i"><b><span class="dot" style="background:${b.status==='online'?'var(--ok)':b.status==='error'?'var(--er)':'#ffd166'}"></span>${esc(b.name)}</b><br><small style="color:var(--mu)">${b.guilds??0} سيرفر</small>${b.error?`<div style="color:var(--er)">${esc(b.error)}</div>`:''}${b.warn?`<div style="color:#ffd166;font-size:13px">${esc(b.warn)}</div>`:''}</div>${b.invite?`<a href="${esc(b.invite)}" target="_blank" rel="noopener"><button class="btn g">دعوة للسيرفر</button></a>`:''}${b.main?'':`<button class="btn er" onclick="delBot('${b.id}')">حذف</button>`}</div>`).join(''))}
+async function impData(inp){const f=inp.files[0];if(!f)return;try{const d=await api('/api/import','POST',JSON.parse(await f.text()));toast('تم استيراد '+d.files+' ملف');setTimeout(()=>location.reload(),1500)}catch(e){toast('ملف غير صالح',1)}}
 async function addBot(){try{await api('/api/bots','POST',{token:$('#tk').value});bots=await api('/api/bots');toast('تم تشغيل البوت');render()}catch(e){toast(e.message,1)}}
 async function delBot(id){if(!confirm('حذف البوت وكل بياناته؟'))return;await api('/api/bots/'+id,'DELETE');bots=await api('/api/bots');render()}
 
