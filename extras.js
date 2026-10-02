@@ -1,6 +1,6 @@
 // الأوامر: /create  /say  /tax  /tax-setup  + حاسبة الضريبة بالرسائل
 const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags, ChannelType, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder } = require('discord.js');
-const store = require('./store'), B = require('./builder');
+const store = require('./store'), B = require('./builder'), prefix = require('./prefix');
 
 const EPH = MessageFlags.Ephemeral;
 const ADMIN = PermissionFlagsBits.Administrator;
@@ -87,6 +87,7 @@ async function onMessage(m, botId) {
   if (m.author.bot || !m.guild) return;
   await taxMessage(m, botId).catch(() => {});
   await autoReply(m, botId);
+  await prefix.handle(m, botId).catch(e => console.error('prefix:', e.message));
 }
 
 // ===== التوجيه: يرجّع true لو هو عالج التفاعل =====
@@ -151,4 +152,4 @@ async function handle(i) {
   return false;
 }
 
-module.exports = { handle, onMessage, register, registerAll };
+module.exports = { handle, onMessage, register, registerAll, parseAmount, calcTax, getTax, taxText };

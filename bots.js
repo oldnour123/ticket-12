@@ -2,7 +2,7 @@ const {
   Client, GatewayIntentBits, MessageFlags, ChannelType, PermissionFlagsBits, ActionRowBuilder,
   UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle
 } = require('discord.js');
-const store = require('./store'), extras = require('./extras');
+const store = require('./store'), extras = require('./extras'), prefix = require('./prefix');
 const { buildPanel, buildTicketMain, buildClaim, claimRow, buildAfter, buildItemResponse } = require('./ui');
 
 const V2 = MessageFlags.IsComponentsV2, EPH = MessageFlags.Ephemeral, P = PermissionFlagsBits;
@@ -24,6 +24,7 @@ function attach(client, botId) {
   client.on('interactionCreate', async i => {
     try {
       if (await extras.handle(i)) return;
+      if (await prefix.interaction(i)) return;
 
       // ===== فتح تذكرة من البانل =====
       if (i.isStringSelectMenu() && i.customId.startsWith('tsel:')) {
@@ -115,7 +116,8 @@ function attach(client, botId) {
         const { p, type, ownerId } = info(i); if (!p) return bad(i);
         if (i.customId === 't_claim') {
           if (!isStaff(i.member, p, type)) return i.reply({ content: '❌ Staff only', flags: EPH });
-          return i.update({ content: `${i.message.content}\n\n✅ Claimed by <@${i.user.id}>`, components: [claimRow(true)], allowedMentions: { parse: [] } });
+          await i.update({ content: `${i.message.content}\n\n✅ Claimed by <@${i.user.id}>`, components: [claimRow(true)], allowedMentions: { parse: [] } });
+          return prefix.addPoint(botId, i.guildId, i.user.id); // نقطة للستاف عند الاستلام
         }
         if (!isStaff(i.member, p, type) && i.user.id !== ownerId) return i.reply({ content: '❌ You do not have permission', flags: EPH });
         await i.reply({ content: '🔒 This ticket will be deleted in 5 seconds...' });
@@ -141,6 +143,8 @@ function make(rec, entry, intents) {
     console.log(`بوت جاهز: ${client.user.tag}`);
   });
   client.on('guildCreate', g => extras.register(g));
+  client.on('messageDelete', m => prefix.onDelete(m));
+  client.on('guildMemberAdd', mb => prefix.greet(mb, rec.id).catch(() => {}));
   client.on('messageCreate', m => extras.onMessage(m, rec.id).catch(() => {}));
   return client;
 }
@@ -148,20 +152,29 @@ async function login(client, token) {
   await client.login(token);
   if (!client.isReady()) await new Promise(r => { client.once('clientReady', r); setTimeout(r, 8000); });
 }
+const G = GatewayIntentBits;
+const TIERS = [
+  [G.Guilds, G.GuildMessages, G.MessageContent, G.GuildMembers, G.GuildVoiceStates],
+  [G.Guilds, G.GuildMessages, G.MessageContent, G.GuildVoiceStates],
+  [G.Guilds, G.GuildMessages, G.GuildVoiceStates]
+];
 async function start(rec) {
   const entry = { status: 'connecting', name: 'جاري الاتصال...' };
   clients.set(rec.id, entry);
-  let client = make(rec, entry, [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]);
-  try { await login(client, rec.token); }
-  catch (e) {
-    if (/intent/i.test(`${e.code} ${e.message}`)) {
+  let client;
+  for (let t = 0; t < TIERS.length; t++) {
+    client = make(rec, entry, TIERS[t]);
+    try {
+      await login(client, rec.token);
+      entry.warn = t === 1 ? 'Server Members Intent غير مفعّل: رسالة الترحيب ($greet) والأوامر $bots و$inrole ما بتشتغل. فعّله من Developer Portal ثم Bot.'
+        : t === 2 ? 'Message Content Intent غير مفعّل: أوامر $ والرد على كلمات محددة وروم الضريبة ما بتشتغل. فعّله من Developer Portal ثم Bot.' : undefined;
+      break;
+    } catch (e) {
       await client.destroy().catch(() => {});
-      entry.warn = 'فعّل Message Content Intent من Developer Portal ثم Bot ليشتغل الرد على كلمات محددة وروم الضريبة (الرد على أي رسالة يشتغل بدونه)';
-      client = make(rec, entry, [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]);
-      try { await login(client, rec.token); } catch { entry.error = 'التوكن غير صالح'; }
-    } else entry.error = 'التوكن غير صالح';
+      if (!/intent/i.test(`${e.code} ${e.message}`) || t === TIERS.length - 1) { entry.error = 'التوكن غير صالح'; break; }
+    }
   }
-  if (!client.isReady()) { entry.status = 'error'; entry.error ||= 'تعذر تشغيل البوت'; }
+  if (!client?.isReady()) { entry.status = 'error'; entry.error ||= 'تعذر تشغيل البوت'; }
   return entry;
 }
 async function stop(id) { const e = clients.get(id); if (e) { await e.client.destroy(); clients.delete(id); } }
