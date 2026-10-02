@@ -67,6 +67,26 @@ input[type=color]{width:52px;height:38px;border:1px solid var(--ln);border-radiu
 #toast{position:fixed;bottom:84px;left:50%;transform:translate(-50%,20px);background:#1fa37a;padding:10px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:9}
 #toast.show{opacity:1;transform:translate(-50%,0)}#toast.bad{background:#c94a5d}
 .mn{background:#5865f240;color:#c9cdfb;border-radius:3px;padding:0 3px}.bt{display:inline-block;background:#4e5058;color:#fff;border-radius:6px;padding:6px 12px;font-size:14px}
+.ld{--gd:#f5b83d;background:radial-gradient(900px 520px at 88% -8%,#f5b83d24,transparent),radial-gradient(760px 520px at -5% 18%,#5b6cf033,transparent);min-height:100vh;overflow-x:hidden}
+.ld .w{max-width:1100px;margin:0 auto;padding:0 22px}
+.ld nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}.ld nav b{font-size:18px;letter-spacing:.2px}.ld nav b i{color:var(--gd);font-style:normal}
+.cta{background:var(--gd);color:#1a1405;border:0;border-radius:14px;padding:14px 28px;font-weight:700;font-size:17px;cursor:pointer;box-shadow:0 10px 40px #f5b83d40;transition:transform .2s}.cta:hover{transform:translateY(-2px)}
+.hr{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:48px 0 70px}
+.hr h1{font-size:clamp(34px,5.6vw,62px);line-height:1.2;margin:0 0 18px}.hr h1 em{font-style:normal;background:linear-gradient(100deg,var(--gd),#ffe29a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hr p{color:var(--mu);font-size:18px;margin:0 0 26px;max-width:520px}.hint{margin-top:14px;font-size:14px;color:var(--mu)}.hint b{color:var(--gd);font-weight:500}
+.mk{transform:rotate(-2.5deg);box-shadow:0 30px 80px #000a;max-width:420px;margin-inline:auto}.mkb{height:118px;border-radius:8px;margin-bottom:10px;display:grid;place-items:center;font-size:28px;font-weight:700;color:#fff;background:linear-gradient(115deg,#0d0b05 10%,#f5b83d66 55%,#0d0b05 95%)}
+.ld h2{font-size:30px;margin:0 0 8px}.ld .sec{padding:30px 0 56px}.ld .lead{color:var(--mu);margin:0 0 28px}
+.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ft{background:var(--s1);border:1px solid var(--ln);border-radius:18px;padding:22px;transition:border-color .2s}.ft:hover{border-color:var(--gd)}
+.ft span{font:700 34px/1 ui-monospace,Menlo,monospace;color:#f5b83d40}.ft h3{margin:14px 0 6px;font-size:18px}.ft p{margin:0;color:var(--mu);font-size:14.5px}
+.cm{display:grid;grid-template-columns:1fr 1.4fr;gap:40px;align-items:start}
+.cr{display:flex;gap:14px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--ln)}.cr code{font:600 15px ui-monospace,Menlo,monospace;color:var(--gd);background:#f5b83d14;border-radius:8px;padding:3px 10px;white-space:nowrap}.cr span{color:var(--mu);font-size:15px}
+.st{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:s}.st div{border-top:2px solid var(--gd);padding-top:14px;counter-increment:s}.st div:before{content:counter(s);font:700 15px ui-monospace,monospace;color:var(--gd)}.st b{display:block;margin:6px 0 4px;font-size:17px}.st p{margin:0;color:var(--mu);font-size:14.5px}
+.band{text-align:center;background:linear-gradient(135deg,#f5b83d1f,#5b6cf01f);border:1px solid var(--ln);border-radius:26px;padding:44px 20px;margin-bottom:30px}.band h2{font-size:32px}
+.ld footer{padding:10px 0 40px;color:var(--mu);font-size:14px;text-align:center}
+.rv{animation:rv .7s both}.rv2{animation:rv .7s .12s both}.rv3{animation:rv .7s .24s both}@keyframes rv{from{opacity:0;transform:translateY(18px)}}
+@media(max-width:860px){.hr,.cm{grid-template-columns:1fr;gap:30px}.fg3,.st{grid-template-columns:1fr}.hr{padding-top:20px}.mk{transform:none}}
+@media(prefers-reduced-motion:reduce){.rv,.rv2,.rv3{animation:none}.cta{transition:none}}
 @media(max-width:900px){.ws{grid-template-columns:1fr}.seg{display:flex}.ws[data-t=edit] .pv,.ws[data-t=pv] .ed{display:none}.pv{position:static}.top{padding:10px 14px}.usr span{display:none}main{padding:18px 14px 30px}.row2{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style></head><body>
@@ -86,11 +106,37 @@ async function api(u,m='GET',b){
   if(!r.ok)throw new Error(d.error||'خطأ');return d}
 
 // ===== الدخول =====
-function loginScreen(){$('#app').innerHTML=`<div class="hero"><h1>تحكم بتذاكر متجرك من مكان واحد</h1>
-<p class="sub">سجّل دخولك بحساب ديسكورد لتشوف السيرفرات اللي تديرها، وتصمم لوحات التذاكر وتنشرها.</p>
-${location.search.includes('err')?'<p style="color:var(--er)">تعذر تسجيل الدخول. حاول مرة ثانية.</p>':''}
-<a href="/auth/discord"><button class="btn">تسجيل الدخول عبر Discord</button></a>
-<details class="ow"><summary>دخول المالك بكلمة السر</summary><label>كلمة السر</label><input id="pw" type="password"><br><br><button class="btn g" onclick="doLogin()">دخول</button></details></div>`}
+function loginScreen(){$('#app').innerHTML=`<div class="ld"><div class="w">
+<nav><b>لوحة <i>التذاكر</i></b><a href="/auth/discord"><button class="cta" style="padding:10px 20px;font-size:15px;box-shadow:none">ربط الحساب</button></a></nav>
+<section class="hr"><div><h1 class="rv">نظام تذاكر <em>احترافي</em> لمتجرك في ديسكورد</h1>
+<p class="rv2">صمّم لوحة التذاكر والردود التلقائية والأوامر من داشبورد واحد، وشوف النتيجة قبل ما تنشر. بدون ما تكتب سطر كود.</p>
+<div class="rv3"><a href="/auth/discord"><button class="cta">ربط الحساب</button></a>
+<div class="hint">لو تبي تدخل اضغط <b>ربط الحساب</b> وسجّل بحساب ديسكورد، بعدها اختر سيرفرك وابدأ.</div>
+${location.search.includes('err')?'<div class="hint" style="color:var(--er)">تعذر تسجيل الدخول، حاول مرة ثانية.</div>':''}</div></div>
+<div class="rv2"><div class="msg mk"><div class="bot"><span class="av">🤖</span><b>Ticket Bot</b><i>APP</i></div><div class="ct" style="--c:#f5b83d"><div class="mkb">التذكرة</div><hr><div class="sel"><span>Select a ticket category...</span><span>⌄</span></div><div style="display:flex;gap:6px;margin-top:12px"><span class="bt">Rules ↗</span><span class="bt">Hours ↗</span></div></div></div></div></section>
+
+<section class="sec"><h2>المميزات</h2><p class="lead">كل شي تحتاجه لإدارة طلبات متجرك بشكل مرتب.</p><div class="fg3">
+<div class="ft"><span>01</span><h3>لوحات تذاكر بالكونتينر الجديد</h3><p>عنوان وصورة وقائمة اختيار وأزرار روابط، بتصميم Components V2.</p></div>
+<div class="ft"><span>02</span><h3>تذكرة ذكية</h3><p>رقم تسلسلي، ومعلومات العميل والقسم ووقت الفتح، ومنشن للفريق المسؤول عن كل قسم.</p></div>
+<div class="ft"><span>03</span><h3>قوائم وأزرار داخل التذكرة</h3><p>مثل طرق الدفع: يكتب البوت البيانات ويغيّر اسم الروم تلقائياً لاسم القسم والخيار.</p></div>
+<div class="ft"><span>04</span><h3>أدوات التذكرة</h3><p>إضافة شخص أو حذفه، تغيير الاسم، قفل وفتح التذكرة، مع زر استلام وإغلاق.</p></div>
+<div class="ft"><span>05</span><h3>ردود تلقائية</h3><p>يرد على أي رسالة أو على كلمات محددة بكونتينر وصور، في الروم اللي تحدده.</p></div>
+<div class="ft"><span>06</span><h3>داشبورد بمعاينة حية</h3><p>تشوف الرسالة قبل النشر، وترفع الصور من جوالك، وكل سيرفر له بياناته المنفصلة.</p></div></div></section>
+
+<section class="sec cm"><div><h2>الأوامر</h2><p class="lead">أوامر سلاش بسيطة، واللوحات والردود تتحكم فيها من الداشبورد.</p></div><div>
+<div class="cr"><code>/create</code><span>بناء رسالة كونتينر بأزرار أو قائمة اختيار وإرسالها (للأدمن)</span></div>
+<div class="cr"><code>/say</code><span>يرسل البوت رسالة باسمك في أي روم تحدده (للأدمن)</span></div>
+<div class="cr"><code>/tax</code><span>يحسب الضريبة على أي مبلغ، مثل 60m أو 200k</span></div>
+<div class="cr"><code>/tax-setup</code><span>يفعّل روم ضريبة تلقائي: أي مبلغ يُكتب فيه يرد البوت بالضريبة</span></div></div></section>
+
+<section class="sec"><h2>كيف تبدأ؟</h2><p class="lead">ثلاث خطوات وتكون لوحتك جاهزة.</p><div class="st">
+<div><b>اربط حسابك</b><p>اضغط ربط الحساب وسجّل الدخول بحساب ديسكورد.</p></div>
+<div><b>اختر سيرفرك</b><p>تظهر لك السيرفرات اللي تديرها وفيها البوت.</p></div>
+<div><b>صمّم وانشر</b><p>عدّل اللوحة وشوف المعاينة، ثم انشرها بضغطة وحدة.</p></div></div></section>
+
+<section class="band"><h2>جاهز تبدأ؟</h2><p class="lead">لو تبي تدخل اضغط الزر وربط حسابك.</p><a href="/auth/discord"><button class="cta">ربط الحساب</button></a></section>
+<details class="ow" style="max-width:380px;margin:0 auto 26px;text-align:center"><summary>دخول المالك بكلمة السر</summary><br><input id="pw" type="password" placeholder="كلمة السر"><br><br><button class="btn g" onclick="doLogin()">دخول</button></details>
+<footer>لوحة التذاكر • مصنوعة لمتاجر ديسكورد</footer></div></div>`}
 async function doLogin(){try{await api('/login','POST',{password:$('#pw').value});boot()}catch(e){toast(e.message,1)}}
 async function boot(){try{me=await api('/api/me');servers=await api('/api/servers');view='servers';render()}catch(e){}}
 async function logout(){await api('/logout','POST');location.href='/'}
@@ -112,7 +158,7 @@ function em(c){c=(c||'').trim();const m=/^<(a?):\w+:(\d+)>$/.exec(c);return m?`<
 function md(t){return esc(t).split('\n').map(l=>/^#{1,3} /.test(l)?`<div class="h">${l.replace(/^#{1,3} /,'')}</div>`:`<div>${l||'&nbsp;'}</div>`).join('')
   .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/&lt;(a?):\w+:(\d+)&gt;/g,(_,a,id)=>`<img class="ce" src="https://cdn.discordapp.com/emojis/${id}.${a?'gif':'png'}" alt="">`)}
 const norm=p=>{p.links=p.links||[];p.showTools=p.showTools!==false;p.types.forEach(t=>t.extras=t.extras||[]);return p};
-function newPanel(){cur={links:[],showTools:true,ticketTop:'Hello {user}',ticketTitle:'✅ تم فتح تذكرة {type} بنجاح',ticketDesc:'انتظر الفريق، سيساعدك قريباً.',ticketBanner:'',afterImage:'',id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#5b6cf0',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:'',extras:[],_o:true}]};panels.push(cur);render()}
+function newPanel(){cur={links:[],showTools:true,ticketTop:'Hello {user}',ticketTitle:'✅ Your {type} ticket has been successfully opened',ticketDesc:'Please wait for the team to assist you.',ticketBanner:'',afterImage:'',id:uid(),name:'لوحة جديدة',title:'# مرحباً بك في التذكرة',description:'📌 قم باختيار قسم التذكرة المناسب لك',placeholder:'اختر نوع التذكرة',bannerUrl:'',imagePosition:'top',color:'#5b6cf0',showReset:true,channelId:'',categoryId:'',supportRoleId:'',logChannelId:'',types:[{id:uid(),label:'طلب تصميم',description:'لطلب تصميم جديد',emoji:'🎨',welcome:'',roleId:'',extras:[],_o:true}]};panels.push(cur);render()}
 function pick(id){cur=panels.find(p=>p.id===id);render()}
 function tabTo(t){tab=t;$('.ws').dataset.t=t;document.querySelectorAll('.seg button').forEach((b,i)=>b.classList.toggle('on',(i?'pv':'edit')===t))}
 function pvHtml(){const p=cur,img=p.bannerUrl?`<img class="bn" src="${esc(p.bannerUrl)}" alt="" onerror="this.style.display='none'">`:'';
@@ -121,15 +167,15 @@ function pvHtml(){const p=cur,img=p.bannerUrl?`<img class="bn" src="${esc(p.bann
 let pvMode='panel',pvt=0;
 function setPvm(m){pvMode=m;document.querySelectorAll('.pvh .tg button').forEach((b,i)=>b.classList.toggle('on',(i?'ticket':'panel')===m));pv()}
 function tvHtml(){const p=cur,t=p.types[Math.min(pvt,p.types.length-1)];if(!t)return '<p class="sub">أضف نوع تذكرة أولاً</p>';
-  const f=s=>String(s||'').replace(/\{user\}/g,'@العميل').replace(/\{role\}/g,'@الفريق').replace(/\{type\}/g,t.label).replace(/\{number\}/g,'1');
-  const mn=h=>h.replace(/@(العميل|الفريق)/g,'<span class="mn">@$1</span>'),sel=ph=>`<div class="sel"><span>${esc(ph)}</span><span>⌄</span></div>`;
+  const f=s=>String(s||'').replace(/\{user\}/g,'@Client').replace(/\{role\}/g,'@Team').replace(/\{type\}/g,t.label).replace(/\{number\}/g,'1');
+  const mn=h=>h.replace(/@(Client|Team)/g,'<span class="mn">@$1</span>'),sel=ph=>`<div class="sel"><span>${esc(ph)}</span><span>⌄</span></div>`;
   const img=u=>`<img class="bn" src="${esc(u)}" alt="" onerror="this.style.display='none'">`;
   const ex=(t.extras||[]).filter(x=>x.items.length).map(x=>`<hr><div class="t">${md('## '+(x.title||'خيارات'))}</div>${x.description?`<div class="d">${esc(x.description)}</div>`:''}`+(x.kind==='buttons'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${x.items.map(it=>`<span class="bt">${em(it.emoji)} ${esc(it.label)}</span>`).join('')}</div>`:sel(x.placeholder||'اختر'))).join('');
   const bot=`<div class="bot"><span class="av">🤖</span><b>${esc(sc.botName)}</b><i>APP</i></div>`;
   return `<select onchange="pvt=+this.value;pv()" style="margin-bottom:10px">${p.types.map((x,i)=>`<option value="${i}" ${i===pvt?'selected':''}>${esc(x.label||'بدون اسم')}</option>`).join('')}</select>
-<div class="msg">${bot}<div class="ct" style="--c:${esc(p.color)}"><div class="d">${mn(md(f(p.ticketTop||'Hello {user}')))}</div><hr>${p.ticketBanner?img(p.ticketBanner):''}<div class="t">${mn(md('## '+f(p.ticketTitle||'✅ تم فتح تذكرة {type} بنجاح')))}</div><div class="d">${mn(md(f(p.ticketDesc||'انتظر الفريق، سيساعدك قريباً.')))}</div>
-<div class="d" style="margin-top:8px">👥 <b>العميل:</b> <span class="mn">@العميل</span><br>ℹ️ <b>القسم:</b> ${esc(t.label)}<br>🔖 <b>رقم التذكرة:</b> #1<br>⏳ <b>وقت الإنشاء:</b> الآن<br>🛡️ <b>الفريق المسؤول:</b> <span class="mn">@الفريق</span></div>${ex}${p.showTools!==false?`<hr>${sel('أدوات التذكرة')}`:''}<hr><span class="bt" style="background:#da373c">🔒 إغلاق التذكرة</span></div></div>
-<div class="msg" style="margin-top:10px"><div class="d">${mn(md(f(t.welcome||'🙋 فريق الدعم: اضغط **استلام التذكرة** لاستلامها.')))}</div><span class="bt" style="background:#248046;margin-top:8px">🙋 استلام التذكرة</span></div>${p.afterImage?`<div class="msg" style="margin-top:10px">${img(p.afterImage).replace('class="bn"','class="bn" style="margin:0"')}</div>`:''}`}
+<div class="msg">${bot}<div class="ct" style="--c:${esc(p.color)}"><div class="d">${mn(md(f(p.ticketTop||'Hello {user}')))}</div><hr>${p.ticketBanner?img(p.ticketBanner):''}<div class="t">${mn(md('## '+f(p.ticketTitle||'✅ Your {type} ticket has been successfully opened')))}</div><div class="d">${mn(md(f(p.ticketDesc||'Please wait for the team to assist you.')))}</div>
+<div class="d" style="margin-top:8px">${em('<:Members:1463352151769354352>')} <b>Client:</b> <span class="mn">@Client</span><br>${em('<:info:1485270153259258036>')} <b>Section:</b> ${esc(t.label)}<br>${em('<:ticket:1407298316135432193>')} <b>Ticket Number:</b> <span class="mn">#ticket-1</span><br>${em('<a:timer:1487799753944207490>')} <b>Creation Time:</b> Now<br>${em('<:6316iconmoderator:1512471981151485961>')} <b>Assigned Team:</b> <span class="mn">@Team</span></div>${ex}${p.showTools!==false?`<hr>${sel('Ticket Tools')}`:''}<hr><span class="bt" style="background:#da373c">Close Ticket</span></div></div>
+<div class="msg" style="margin-top:10px"><div class="d">${mn(md(f(t.welcome||'A staff member will claim this ticket shortly.')))}</div><span class="bt" style="background:#248046;margin-top:8px">Claim</span></div>${p.afterImage?`<div class="msg" style="margin-top:10px">${img(p.afterImage).replace('class="bn"','class="bn" style="margin:0"')}</div>`:''}`}
 const pv=()=>{const e=$('#pv');if(e){const o=e.querySelector('.sel')?.classList.contains('open');e.innerHTML=pvMode==='ticket'?tvHtml():pvHtml();if(o)e.querySelector('.sel').classList.add('open')}};
 const set=(k,v)=>{cur[k]=v;pv()};
 function panelsView(){
@@ -192,7 +238,7 @@ ${x.kind!=='buttons'?`<input style="margin-top:8px" placeholder="وصف قصير
 <textarea style="margin-top:8px" placeholder="الرسالة اللي تنكتب لما يختاره (مثل بيانات التحويل). والروم يتسمى: القسم-الخيار" oninput="is(${i},${j},${n},'response',this.value)">${esc(it.response)}</textarea>
 <button class="x" onclick="cur.types[${i}].extras[${j}].items.splice(${n},1);renderTypes()">حذف الخيار</button></div>`).join('')}
 <button class="btn g" style="margin-top:8px" onclick="cur.types[${i}].extras[${j}].items.push({id:uid(),label:'',description:'',emoji:'',response:''});renderTypes()">+ خيار</button>
-<button class="x" onclick="cur.types[${i}].extras.splice(${j},1);renderTypes()">حذف هذا القسم</button></div>`).join('')+(t.extras.length<3?`<button class="btn g" onclick="cur.types[${i}].extras.push({id:uid(),kind:'select',title:'💳 طريقة الدفع',description:'اختر طريقة الدفع من القائمة بالأسفل.',placeholder:'اختر طريقة الدفع',items:[]});renderTypes()">+ إضافة قسم إضافي</button>`:'')}
+<button class="x" onclick="cur.types[${i}].extras.splice(${j},1);renderTypes()">حذف هذا القسم</button></div>`).join('')+(t.extras.length<3?`<button class="btn g" onclick="cur.types[${i}].extras.push({id:uid(),kind:'select',title:'💳 Payment Method',description:'Select a payment method from the menu below.',placeholder:'Select a payment method',items:[]});renderTypes()">+ إضافة قسم إضافي</button>`:'')}
 function ty(i,k,v){cur.types[i][k]=v;if(k==='label')$('#tl'+i).textContent=v||'بدون اسم';pv()}
 function renderTypes(){$('#types').innerHTML=typesHtml();pv()}
 async function upl(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('image',f);

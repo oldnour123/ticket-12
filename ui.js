@@ -22,9 +22,9 @@ function buildPanel(p) {
     label: t.label.slice(0, 100), description: (t.description || '').slice(0, 100) || undefined,
     value: t.id, emoji: parseEmoji(t.emoji)
   }));
-  if (p.showReset !== false) opts.push({ label: 'Reset Menu', description: 'إعادة ضبط القائمة', value: 'reset', emoji: '🔄' });
+  if (p.showReset !== false) opts.push({ label: 'Reset Menu', description: 'Reset the menu', value: 'reset', emoji: '🔄' });
   const select = new StringSelectMenuBuilder().setCustomId(`tsel:${p.id}`)
-    .setPlaceholder(p.placeholder || 'اختر نوع التذكرة').addOptions(opts);
+    .setPlaceholder(p.placeholder || 'Select a ticket category...').addOptions(opts);
   const c = new ContainerBuilder().setAccentColor(color(p.color));
   const hasImg = !!p.bannerUrl;
   if (hasImg && p.imagePosition !== 'bottom') c.addMediaGalleryComponents(gal(p.bannerUrl));
@@ -52,15 +52,18 @@ function buildTicketMain(p, type, ctx) {
   c.addTextDisplayComponents(txt(fill(p.ticketTop || 'Hello {user}', v)));
   c.addSeparatorComponents(sep());
   if (p.ticketBanner) c.addMediaGalleryComponents(gal(p.ticketBanner));
-  c.addTextDisplayComponents(txt(`## ${fill(p.ticketTitle || '✅ تم فتح تذكرة {type} بنجاح', v)}\n${fill(p.ticketDesc || p.ticketWelcome || 'انتظر الفريق، سيساعدك قريباً.', v)}`));
+  c.addTextDisplayComponents(txt(`## ${fill(p.ticketTitle || '✅ Your {type} ticket has been successfully opened', v)}\n${fill(p.ticketDesc || p.ticketWelcome || 'Please wait for the team to assist you.', v)}`));
   c.addTextDisplayComponents(txt(
-    `👥 **العميل:** <@${ctx.ownerId}>\nℹ️ **القسم:** ${type.label}\n🔖 **رقم التذكرة:** #${ctx.number}\n` +
-    `⏳ **وقت الإنشاء:** <t:${ctx.ts}:F>` + (role ? `\n🛡️ **الفريق المسؤول:** <@&${role}>` : '')));
+    `<:Members:1463352151769354352> **Client:** <@${ctx.ownerId}>\n` +
+    `<:info:1485270153259258036> **Section:** ${type.label}\n` +
+    `<:ticket:1407298316135432193> **Ticket Number:** <#${ctx.channelId}>\n` +
+    `<a:timer:1487799753944207490> **Creation Time:** <t:${ctx.ts}:F>` +
+    (role ? `\n<:6316iconmoderator:1512471981151485961> **Assigned Team:** <@&${role}>` : '')));
 
   for (const x of type.extras || []) {
     if (!x.items?.length) continue;
     c.addSeparatorComponents(sep());
-    c.addTextDisplayComponents(txt(`## ${x.title || 'خيارات'}${x.description ? `\n${x.description}` : ''}`));
+    c.addTextDisplayComponents(txt(`## ${x.title || 'Options'}${x.description ? `\n${x.description}` : ''}`));
     if (x.kind === 'buttons') {
       c.addActionRowComponents(new ActionRowBuilder().addComponents(x.items.slice(0, 5).map(it => {
         const b = new ButtonBuilder().setCustomId(`t_xb:${x.id}:${it.id}`).setLabel(it.label).setStyle(ButtonStyle.Secondary);
@@ -69,7 +72,7 @@ function buildTicketMain(p, type, ctx) {
       })));
     } else {
       c.addActionRowComponents(new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder().setCustomId(`t_x:${x.id}`).setPlaceholder(x.placeholder || 'اختر')
+        new StringSelectMenuBuilder().setCustomId(`t_x:${x.id}`).setPlaceholder(x.placeholder || 'Select an option')
           .addOptions(x.items.slice(0, 25).map(it => ({
             label: it.label.slice(0, 100), description: (it.description || '').slice(0, 100) || undefined,
             value: it.id, emoji: parseEmoji(it.emoji)
@@ -79,25 +82,25 @@ function buildTicketMain(p, type, ctx) {
   if (p.showTools !== false) {
     c.addSeparatorComponents(sep());
     c.addActionRowComponents(new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder().setCustomId('t_tools').setPlaceholder('أدوات التذكرة').addOptions(
-        { label: 'إضافة شخص', value: 'add', emoji: '➕', description: 'يعطيه صلاحية يشوف التذكرة' },
-        { label: 'حذف شخص', value: 'rm', emoji: '➖', description: 'يسحب صلاحيته من التذكرة' },
-        { label: 'تغيير اسم التذكرة', value: 'rename', emoji: '✏️', description: 'اسم جديد للروم' },
-        { label: 'قفل / فتح التذكرة', value: 'lock', emoji: '🔒', description: 'يمنع صاحبها من الكتابة أو يسمح له' })));
+      new StringSelectMenuBuilder().setCustomId('t_tools').setPlaceholder('Ticket Tools').addOptions(
+        { label: 'Add User', value: 'add', emoji: '➕', description: 'Give someone access to this ticket' },
+        { label: 'Remove User', value: 'rm', emoji: '➖', description: 'Remove someone from this ticket' },
+        { label: 'Rename Ticket', value: 'rename', emoji: '✏️', description: 'Change the channel name' },
+        { label: 'Lock / Unlock Ticket', value: 'lock', emoji: '🔒', description: 'Stop or allow the owner from writing' })));
   }
   c.addSeparatorComponents(sep());
   c.addActionRowComponents(new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('t_close').setLabel('إغلاق التذكرة').setEmoji('🔒').setStyle(ButtonStyle.Danger)));
+    new ButtonBuilder().setCustomId('t_close').setLabel('Close Ticket').setStyle(ButtonStyle.Danger)));
   return c;
 }
 
 // ===== رسالة 2: نص عادي (بدون امبد) تحدده + زر الاستلام =====
 const claimRow = done => new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId('t_claim').setLabel(done ? 'تم الاستلام' : 'استلام التذكرة')
-    .setEmoji('🙋').setStyle(ButtonStyle.Success).setDisabled(!!done));
+  new ButtonBuilder().setCustomId('t_claim').setLabel(done ? 'Claimed' : 'Claim')
+    .setStyle(ButtonStyle.Success).setDisabled(!!done));
 function buildClaim(p, type, ownerId) {
   const role = type.roleId || p.supportRoleId;
-  const content = fill(type.welcome || '🙋 فريق الدعم: اضغط **استلام التذكرة** لاستلامها.', { ownerId, role, type: type.label });
+  const content = fill(type.welcome || 'A staff member will claim this ticket shortly.', { ownerId, role, type: type.label });
   return { content, components: [claimRow(false)] };
 }
 // ===== رسالة 3: صورة / خط فاصل بعد الزر =====
