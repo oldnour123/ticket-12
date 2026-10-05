@@ -10,6 +10,9 @@ const deny = i => i.reply({ content: '❌ ما عندك صلاحية تستخد�
 const commands = [
   new SlashCommandBuilder().setName('create').setDescription('بناء رسالة كونتينر مخصصة بأزرار أو قائمة اختيار (أدمن فقط)')
     .setDefaultMemberPermissions(ADMIN),
+  new SlashCommandBuilder().setName('dashboard').setDescription('تحديد روم لوحة التحكم بالإمبدات: كل إمبد بترسله بيطلع له كارد تحكم (أدمن فقط)')
+    .setDefaultMemberPermissions(ADMIN)
+    .addChannelOption(o => o.setName('channel').setDescription('الروم اللي بتظهر فيه كروت التحكم').addChannelTypes(ChannelType.GuildText).setRequired(true)),
   new SlashCommandBuilder().setName('say').setDescription('يخلي البوت يرسل رسالة نيابة عنك (أدمن فقط)')
     .setDefaultMemberPermissions(ADMIN)
     .addStringOption(o => o.setName('message').setDescription('نص الرسالة (استخدم \\n لسطر جديد)').setRequired(true))
@@ -94,7 +97,8 @@ async function onMessage(m, botId) {
 async function handle(i) {
   const botId = i.client.botId;
   if (i.isChatInputCommand()) {
-    if (i.commandName === 'create') { if (!isAdmin(i)) return deny(i), true; await B.openEmbedModal(i); return true; }
+    if (i.commandName === 'create') { if (!isAdmin(i)) return deny(i), true; B.startNew(i); await B.openEmbedModal(i); return true; }
+    if (i.commandName === 'dashboard') { if (!isAdmin(i)) return deny(i), true; await B.setDashboard(i); return true; }
     if (i.commandName === 'say') {
       if (!isAdmin(i)) return deny(i), true;
       const ch = i.options.getChannel('channel') || i.channel;
@@ -126,8 +130,9 @@ async function handle(i) {
   }
 
   const id = i.customId || '';
+  if (id.startsWith('dash_')) { if (!isAdmin(i)) return deny(i), true; await B.handleDash(i); return true; }
   if (!id.startsWith('bld_') && !id.startsWith('sent_')) return false;
-  if (id.startsWith('bld_') && !B.get(i)) { await i.reply({ content: '⌛ انتهت الجلسة، استخدم `/create` من جديد.', flags: EPH }).catch(() => {}); return true; }
+  if (id.startsWith('bld_') && id !== 'bld_modal_embed' && !B.get(i)) { await i.reply({ content: '⌛ انتهت الجلسة، استخدم `/create` من جديد.', flags: EPH }).catch(() => {}); return true; }
 
   if (i.isButton()) {
     const map = {
