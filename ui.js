@@ -52,13 +52,17 @@ function buildTicketMain(p, type, ctx) {
   c.addTextDisplayComponents(txt(fill(p.ticketTop || 'Hello {user}', v)));
   c.addSeparatorComponents(sep());
   if (p.ticketBanner) c.addMediaGalleryComponents(gal(p.ticketBanner));
-  c.addTextDisplayComponents(txt(`## ${fill(p.ticketTitle || '✅ Your {type} ticket has been successfully opened', v)}\n${fill(p.ticketDesc || p.ticketWelcome || 'Please wait for the team to assist you.', v)}`));
+  // العنوان | خط | الوصف | خط | معلومات التذكرة (كل سطر يبدأ بـ > بدون ايموجيات)
+  c.addTextDisplayComponents(txt(`## ${fill(p.ticketTitle || '✅ Your {type} ticket has been successfully opened', v)}`));
+  c.addSeparatorComponents(sep());
+  c.addTextDisplayComponents(txt(fill(p.ticketDesc || p.ticketWelcome || 'Please wait for the team to assist you.', v)));
+  c.addSeparatorComponents(sep());
   c.addTextDisplayComponents(txt(
-    `<:Members:1463352151769354352> **Client:** <@${ctx.ownerId}>\n` +
-    `<:info:1485270153259258036> **Section:** ${type.label}\n` +
-    `<:ticket:1407298316135432193> **Ticket Number:** <#${ctx.channelId}>\n` +
-    `<a:timer:1487799753944207490> **Creation Time:** <t:${ctx.ts}:F>` +
-    (role ? `\n<:6316iconmoderator:1512471981151485961> **Assigned Team:** <@&${role}>` : '')));
+    `> **Client:** <@${ctx.ownerId}>\n` +
+    `> **Section:** ${type.label}\n` +
+    `> **Ticket Number:** <#${ctx.channelId}>\n` +
+    `> **Creation Time:** <t:${ctx.ts}:F>` +
+    (role ? `\n> **Assigned Team:** <@&${role}>` : '')));
 
   for (const x of type.extras || []) {
     if (!x.items?.length) continue;
@@ -94,18 +98,14 @@ function buildTicketMain(p, type, ctx) {
   return c;
 }
 
-// ===== رسالة 2: كونتينر الترحيب (النص اللي تحدده) + زر الاستلام =====
+// ===== رسالة 2: نص عادي (بدون امبد) تحدده + زر الاستلام =====
 const claimRow = done => new ActionRowBuilder().addComponents(
   new ButtonBuilder().setCustomId('t_claim').setLabel(done ? 'Claimed' : 'Claim')
     .setStyle(ButtonStyle.Success).setDisabled(!!done));
-function buildClaim(p, type, ownerId, claimedBy) {
+function buildClaim(p, type, ownerId) {
   const role = type.roleId || p.supportRoleId;
   const content = fill(type.welcome || 'A staff member will claim this ticket shortly.', { ownerId, role, type: type.label });
-  const c = new ContainerBuilder().setAccentColor(claimedBy ? 0x57f287 : color(p.color))
-    .addTextDisplayComponents(txt(claimedBy ? `${content}\n\n✅ Claimed by <@${claimedBy}>` : content));
-  c.addSeparatorComponents(sep());
-  c.addActionRowComponents(claimRow(!!claimedBy));
-  return { components: [c], flags: MessageFlags.IsComponentsV2 };
+  return { content, components: [claimRow(false)] };
 }
 // ===== رسالة 3: صورة / خط فاصل بعد الزر =====
 const buildAfter = p => p.afterImage ? { components: [gal(p.afterImage)], flags: MessageFlags.IsComponentsV2 } : null;
