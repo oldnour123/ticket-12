@@ -41,12 +41,11 @@ function buildContainer(s) {
   const pos = s.imagePosition || 'bottom';
   const top = s.image && (pos === 'top' || pos === 'both');
   const bottom = s.image && (pos === 'bottom' || pos === 'both');
+  // الشكل: عنوان • وصف • (خط • صورة • خط) • أزرار — الخطوط الفاصلة حول الصورة بس
   c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${s.title}`));
-  // خط فاصل ظاهر (divider) بين العنوان والوصف والكلام الصغير
-  if (s.description || s.image || s.footer) c.addSeparatorComponents(sep(true));
-  if (top) { c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); c.addSeparatorComponents(sep()); }
+  if (top) { c.addSeparatorComponents(sep(true)); c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); c.addSeparatorComponents(sep(true)); }
   if (s.description) c.addTextDisplayComponents(new TextDisplayBuilder().setContent(s.description));
-  if (bottom) { c.addSeparatorComponents(sep()); c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); }
+  if (bottom) { c.addSeparatorComponents(sep(true)); c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); }
   if (s.footer) { c.addSeparatorComponents(sep(true)); c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${s.footer}`)); }
   return c;
 }
