@@ -4,6 +4,7 @@ const {
   MessageFlags, PermissionFlagsBits: P
 } = require('discord.js');
 const store = require('./store');
+const { eph, quiet, msg } = require('./cx');
 
 const V2 = MessageFlags.IsComponentsV2, EPH = MessageFlags.Ephemeral;
 const PREFIX = process.env.PREFIX || '$';
@@ -15,7 +16,7 @@ const ok = (m, t) => reply(m, '✅ ' + t, 0x57f287), no = (m, t) => reply(m, '�
 const uid = s => (String(s || '').match(/\d{15,20}/) || [])[0];
 const mem = (m, s) => { const i = uid(s); return i ? m.guild.members.fetch(i).catch(() => null) : Promise.resolve(null); };
 const dur = s => { const x = /^(\d+)([smhd])$/i.exec(s || ''); return x ? +x[1] * { s: 1e3, m: 6e4, h: 36e5, d: 864e5 }[x[2].toLowerCase()] : null; };
-const mlog = (m, t) => m.guild.channels.cache.get(db(m.client.botId, 'logch')[m.guild.id])?.send({ content: t, allowedMentions: { parse: [] } }).catch(() => {});
+const mlog = (m, t) => m.guild.channels.cache.get(db(m.client.botId, 'logch')[m.guild.id])?.send(quiet(t)).catch(() => {});
 const top = (obj, n = 10) => Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
 
 // ===== تسجيل الأوامر =====
@@ -131,7 +132,7 @@ add('inrole', 'admin', 'List all members having a specific role', { perm: P.Mana
 });
 add('come', 'admin', 'Call a member to the current channel (DM)', { perm: P.Administrator }, async ({ m, args }) => {
   const mb = await mem(m, args[0]); if (!mb) return no(m, 'Usage: come @user');
-  await mb.send(`📢 <@${m.author.id}> is calling you in ${m.channel.url}`).then(() => ok(m, `<@${mb.id}> was called`)).catch(() => no(m, 'The user has DMs closed'));
+  await mb.send(msg(`📢 <@${m.author.id}> is calling you in ${m.channel.url}`)).then(() => ok(m, `<@${mb.id}> was called`)).catch(() => no(m, 'The user has DMs closed'));
 });
 add('move', 'admin', 'Pull a member to your voice channel', { perm: P.MoveMembers }, async ({ m, args }) => {
   const mb = await mem(m, args[0]), vc = m.member.voice.channel; if (!mb || !vc) return no(m, 'Join a voice channel first, then: move @user');
@@ -196,7 +197,7 @@ function helpBox(c, k) {
 }
 async function interaction(i) {
   if (!(i.isStringSelectMenu() && i.customId.startsWith('hlp:'))) return false;
-  if (i.customId.slice(4) !== i.user.id) { await i.reply({ content: '❌ This menu is not for you.', flags: EPH }); return true; }
+  if (i.customId.slice(4) !== i.user.id) { await i.reply(eph('❌ This menu is not for you.')); return true; }
   await i.update({ components: [helpBox({ uid: i.user.id, bot: i.client.user, guild: i.guild.name, name: i.member.displayName }, i.values[0])], flags: V2 });
   return true;
 }
@@ -228,7 +229,7 @@ async function greet(mb, botId) {
   const c = gcfg(botId, mb.guild.id); if (!c.enabled || !c.channelId) return;
   const ch = mb.guild.channels.cache.get(c.channelId); if (!ch) return;
   const text = (c.message || 'Welcome {user} to **{server}**!').replace(/\{user\}/g, `<@${mb.id}>`).replace(/\{server\}/g, mb.guild.name).replace(/\{count\}/g, mb.guild.memberCount);
-  const r = await ch.send({ content: text, allowedMentions: { users: [mb.id] } }).catch(() => null);
+  const r = await ch.send(msg(text, { allowedMentions: { users: [mb.id] } })).catch(() => null);
   if (r && c.delSec) setTimeout(() => r.delete().catch(() => {}), c.delSec * 1000);
 }
 const addPoint = (b, g, u) => { const p = db(b, 'points'); ((p[g] ??= {})[u] = (p[g][u] || 0) + 1); put(b, 'points', p); };

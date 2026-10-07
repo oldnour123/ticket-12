@@ -5,6 +5,7 @@ const {
   SeparatorBuilder, MediaGalleryBuilder, MessageFlags, SeparatorSpacingSize
 } = require('discord.js');
 const store = require('./store');
+const { eph, msg } = require('./cx');
 
 const V2 = MessageFlags.IsComponentsV2, EPH = MessageFlags.Ephemeral;
 const sessions = new Map();
@@ -25,8 +26,10 @@ const IMG_POSITIONS = [
 ];
 const parseColor = hex => { const n = parseInt(String(hex).replace('#', ''), 16); return isNaN(n) ? 0x5865f2 : n; };
 const sep = (d = false) => new SeparatorBuilder().setDivider(d).setSpacing(SeparatorSpacingSize.Small);
-// يقبل ايموجي عادي أو <:name:id> وغير كذا يتجاهله (عشان ما يفشل الإرسال)
-const cleanEmoji = t => { t = (t || '').trim(); return /^<a?:\w+:\d+>$/.test(t) || /\p{Extended_Pictographic}/u.test(t) ? t : null; };
+// يقبل ايموجي عادي (مع الأعلام والأرقام 1️⃣ والعائلة...) أو <:name:id>، ويأخذ أول ايموجي بس (أي نص زيادة يخلي ديسكورد يرفض الرسالة كلها)
+const EMOJI_RE = /^(?:<a?:\w+:\d+>|[#*0-9]\uFE0F?\u20E3|\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*)/u;
+const cleanEmoji = t => (String(t || '').trim().match(EMOJI_RE) || [null])[0];
+const BAD_EMOJI = '❌ الايموجي غير صالح. اكتب ايموجي حقيقي مثل ⭐ أو 1️⃣ أو 🇯🇴 (مش `:fire:`)، أو ايموجي سيرفر بصيغة `<:name:123456789>`.';
 const ack = i => (i.isFromMessage() ? i.deferUpdate() : i.deferReply({ flags: EPH }));
 
 // ===== ردود الأزرار والقوائم (محفوظة لكل بوت) =====
@@ -39,10 +42,12 @@ function buildContainer(s) {
   const top = s.image && (pos === 'top' || pos === 'both');
   const bottom = s.image && (pos === 'bottom' || pos === 'both');
   c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${s.title}`));
-  if (top) { c.addSeparatorComponents(sep()); c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); }
+  // خط فاصل ظاهر (divider) بين العنوان والوصف والكلام الصغير
+  if (s.description || s.image || s.footer) c.addSeparatorComponents(sep(true));
+  if (top) { c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); c.addSeparatorComponents(sep()); }
   if (s.description) c.addTextDisplayComponents(new TextDisplayBuilder().setContent(s.description));
   if (bottom) { c.addSeparatorComponents(sep()); c.addMediaGalleryComponents(new MediaGalleryBuilder().addItems({ media: { url: s.image } })); }
-  if (s.footer) { c.addSeparatorComponents(sep()); c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${s.footer}`)); }
+  if (s.footer) { c.addSeparatorComponents(sep(true)); c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${s.footer}`)); }
   return c;
 }
 
@@ -246,6 +251,7 @@ const btnModal = customId => new ModalBuilder().setCustomId(customId).setTitle('
 function parseButton(get) {
   const url = get('b_url').trim(), style = BTN_STYLES[get('b_style').trim().toLowerCase()] ?? ButtonStyle.Primary;
   if (url && !/^https?:\/\/\S+\.\S+$/i.test(url)) return { error: '❌ الرابط لازم يبدأ بـ `http://` أو `https://`.' };
+  if (get('b_emoji').trim() && !cleanEmoji(get('b_emoji'))) return { error: BAD_EMOJI };
   return { btn: {
     id: `cb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, label: get('b_label').trim(), emoji: cleanEmoji(get('b_emoji')),
     url: url || null, response: get('b_response').trim(), style: url ? ButtonStyle.Link : style
@@ -258,7 +264,7 @@ async function handleAddButton(i) {
 }
 async function handleButtonModal(i) {
   const s = get(i), r = parseButton(k => i.fields.getTextInputValue(k));
-  if (r.error) return i.reply({ content: r.error, flags: EPH });
+  if (r.error) return i.reply(eph(r.error));
   s.buttons.push(r.btn);
   await ack(i); await showPreview(i, s);
 }
@@ -273,6 +279,7 @@ async function handleAddOption(i) {
 }
 async function handleOptionModal(i) {
   const s = get(i);
+  if (i.fields.getTextInputValue('o_emoji').trim() && !cleanEmoji(i.fields.getTextInputValue('o_emoji'))) return i.reply(eph(BAD_EMOJI));
   s.selectOptions.push({
     id: `co_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
     label: i.fields.getTextInputValue('o_label'), description: i.fields.getTextInputValue('o_desc').trim() || null,
@@ -405,7 +412,7 @@ async function handleDash(i) {
   if (!m) return;
   const [, act, id] = m, b = i.client.botId;
   const rec = embedsGet(b).find(r => r.id === id && r.guildId === i.guildId);
-  if (!rec) return i.reply({ content: '❌ ما لقيت بيانات هالإمبد (يمكن انحذف).', flags: EPH });
+  if (!rec) return i.reply(eph('❌ ما لقيت بيانات هالإمبد (يمكن انحذف).'));
 
   if (act === 'edit') {
     sessions.set(skey(i), { ...structuredClone(rec.state), editId: rec.id });
@@ -413,13 +420,13 @@ async function handleDash(i) {
     return showPreview(i, get(i));
   }
   if (act === 'addbtn') {
-    if (rec.state.buttons.length >= 5) return i.reply({ content: '❌ وصلت الحد الأقصى (5 أزرار). احذف زر من ✏️ تعديل.', flags: EPH });
+    if (rec.state.buttons.length >= 5) return i.reply(eph('❌ وصلت الحد الأقصى (5 أزرار). احذف زر من ✏️ تعديل.'));
     return i.showModal(btnModal(`dash_btnmodal_${rec.id}`));
   }
   if (act === 'btnmodal') { // إضافة زر (رابط أو عادي) مباشرة من الداشبورد وتطبيقه على الرسالة
     const r = parseButton(k => i.fields.getTextInputValue(k));
-    if (r.error) return i.reply({ content: r.error, flags: EPH });
-    if (rec.state.buttons.length >= 5) return i.reply({ content: '❌ وصلت الحد الأقصى (5 أزرار).', flags: EPH });
+    if (r.error) return i.reply(eph(r.error));
+    if (rec.state.buttons.length >= 5) return i.reply(eph('❌ وصلت الحد الأقصى (5 أزرار).'));
     await i.deferReply({ flags: EPH });
     rec.state.buttons.push(r.btn);
     const prevType = rec.state.componentType;
@@ -462,7 +469,7 @@ async function handleDash(i) {
 async function setDashboard(i) {
   const ch = i.options.getChannel('channel'), b = i.client.botId;
   if (!ch.permissionsFor(i.guild.members.me)?.has(['ViewChannel', 'SendMessages']))
-    return i.reply({ content: `❌ البوت ما عنده صلاحية يرسل في <#${ch.id}>.`, flags: EPH });
+    return i.reply(eph(`❌ البوت ما عنده صلاحية يرسل في <#${ch.id}>.`));
   await i.deferReply({ flags: EPH });
   store.kv.set(b, 'embedcfg', { ...store.kv.get(b, 'embedcfg', {}), [i.guildId]: { channelId: ch.id } });
   const list = embedsGet(b);
@@ -475,7 +482,7 @@ async function setDashboard(i) {
     if (await postDashboard(i.client, rec)) n++;
   }
   store.kv.set(b, 'embeds', list);
-  await i.editReply({ content: `✅ روم الداشبورد: <#${ch.id}>${n ? ` • اننشر ${n} كارد للإمبدات السابقة` : ''}\nأي إمبد بترسله بـ \`/create\` بيطلع له كارد تحكم هناك.` });
+  await i.editReply(msg(`✅ روم الداشبورد: <#${ch.id}>${n ? ` • اننشر ${n} كارد للإمبدات السابقة` : ''}\nأي إمبد بترسله بـ \`/create\` بيطلع له كارد تحكم هناك.`));
 }
 
 // /create جديد ما لازم يورث جلسة تعديل قديمة

@@ -94,14 +94,18 @@ function buildTicketMain(p, type, ctx) {
   return c;
 }
 
-// ===== رسالة 2: نص عادي (بدون امبد) تحدده + زر الاستلام =====
+// ===== رسالة 2: كونتينر الترحيب (النص اللي تحدده) + زر الاستلام =====
 const claimRow = done => new ActionRowBuilder().addComponents(
   new ButtonBuilder().setCustomId('t_claim').setLabel(done ? 'Claimed' : 'Claim')
     .setStyle(ButtonStyle.Success).setDisabled(!!done));
-function buildClaim(p, type, ownerId) {
+function buildClaim(p, type, ownerId, claimedBy) {
   const role = type.roleId || p.supportRoleId;
   const content = fill(type.welcome || 'A staff member will claim this ticket shortly.', { ownerId, role, type: type.label });
-  return { content, components: [claimRow(false)] };
+  const c = new ContainerBuilder().setAccentColor(claimedBy ? 0x57f287 : color(p.color))
+    .addTextDisplayComponents(txt(claimedBy ? `${content}\n\n✅ Claimed by <@${claimedBy}>` : content));
+  c.addSeparatorComponents(sep());
+  c.addActionRowComponents(claimRow(!!claimedBy));
+  return { components: [c], flags: MessageFlags.IsComponentsV2 };
 }
 // ===== رسالة 3: صورة / خط فاصل بعد الزر =====
 const buildAfter = p => p.afterImage ? { components: [gal(p.afterImage)], flags: MessageFlags.IsComponentsV2 } : null;

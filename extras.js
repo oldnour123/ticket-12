@@ -1,11 +1,12 @@
 // الأوامر: /create  /say  /tax  /tax-setup  + حاسبة الضريبة بالرسائل
 const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags, ChannelType, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder } = require('discord.js');
+const { eph, msg } = require('./cx');
 const store = require('./store'), B = require('./builder'), prefix = require('./prefix');
 
 const EPH = MessageFlags.Ephemeral;
 const ADMIN = PermissionFlagsBits.Administrator;
 const isAdmin = i => i.memberPermissions?.has(ADMIN);
-const deny = i => i.reply({ content: '❌ ما عندك صلاحية تستخدم هالأمر.', flags: EPH });
+const deny = i => i.reply(eph('❌ ما عندك صلاحية تستخدم هالأمر.'));
 
 const commands = [
   new SlashCommandBuilder().setName('create').setDescription('بناء رسالة كونتينر مخصصة بأزرار أو قائمة اختيار (أدمن فقط)')
@@ -47,7 +48,7 @@ async function taxMessage(m, botId) {
   if (!cfg.enabled || !cfg.channelId || m.channelId !== cfg.channelId) return;
   const amount = parseAmount(m.content);
   if (amount === null) return;
-  await m.reply(taxText(calcTax(amount, cfg.feePercent))).catch(() => {});
+  await m.reply({ ...msg(taxText(calcTax(amount, cfg.feePercent))), allowedMentions: { repliedUser: false, parse: [] } }).catch(() => {});
 }
 
 // ===== الرد التلقائي: أي رسالة (أو كلمة محددة) في روم يرد عليها البوت بكونتينر =====
@@ -104,14 +105,14 @@ async function handle(i) {
       const ch = i.options.getChannel('channel') || i.channel;
       try {
         await ch.send(i.options.getString('message').replaceAll('\\n', '\n'));
-        await i.reply({ content: `✅ تم إرسال الرسالة في <#${ch.id}>`, flags: EPH });
-      } catch { await i.reply({ content: '❌ تعذر الإرسال (تأكد من صلاحيات البوت في الروم).', flags: EPH }); }
+        await i.reply(eph(`✅ تم إرسال الرسالة في <#${ch.id}>`));
+      } catch { await i.reply(eph('❌ تعذر الإرسال (تأكد من صلاحيات البوت في الروم).')); }
       return true;
     }
     if (i.commandName === 'tax') {
       const amount = parseAmount(i.options.getString('amount'));
-      if (amount === null) { await i.reply({ content: '❌ اكتب مبلغ صحيح مثل `60m` أو `200k` أو `1500`', flags: EPH }); return true; }
-      await i.reply(taxText(calcTax(amount, getTax(botId, i.guildId).feePercent)));
+      if (amount === null) { await i.reply(eph('❌ اكتب مبلغ صحيح مثل `60m` أو `200k` أو `1500`')); return true; }
+      await i.reply(msg(taxText(calcTax(amount, getTax(botId, i.guildId).feePercent))));
       return true;
     }
     if (i.commandName === 'tax-setup') {
@@ -121,9 +122,9 @@ async function handle(i) {
       if (ch) { cfg.channelId = ch.id; if (en === null) cfg.enabled = true; }
       if (pct !== null) cfg.feePercent = pct;
       if (en !== null) cfg.enabled = en;
-      if (cfg.enabled && !cfg.channelId) { await i.reply({ content: '❌ حدد الروم أولاً: `/tax-setup channel:#الروم`', flags: EPH }); return true; }
+      if (cfg.enabled && !cfg.channelId) { await i.reply(eph('❌ حدد الروم أولاً: `/tax-setup channel:#الروم`')); return true; }
       setTax(botId, i.guildId, cfg);
-      await i.reply({ content: `✅ الضريبة: ${cfg.enabled ? 'مفعّلة' : 'متوقفة'} • الروم: ${cfg.channelId ? `<#${cfg.channelId}>` : '—'} • النسبة: ${cfg.feePercent}%`, flags: EPH });
+      await i.reply(eph(`✅ الضريبة: ${cfg.enabled ? 'مفعّلة' : 'متوقفة'} • الروم: ${cfg.channelId ? `<#${cfg.channelId}>` : '—'} • النسبة: ${cfg.feePercent}%`));
       return true;
     }
     return false;
@@ -132,7 +133,7 @@ async function handle(i) {
   const id = i.customId || '';
   if (id.startsWith('dash_')) { if (!isAdmin(i)) return deny(i), true; await B.handleDash(i); return true; }
   if (!id.startsWith('bld_') && !id.startsWith('sent_')) return false;
-  if (id.startsWith('bld_') && id !== 'bld_modal_embed' && !B.get(i)) { await i.reply({ content: '⌛ انتهت الجلسة، استخدم `/create` من جديد.', flags: EPH }).catch(() => {}); return true; }
+  if (id.startsWith('bld_') && id !== 'bld_modal_embed' && !B.get(i)) { await i.reply(eph('⌛ انتهت الجلسة، استخدم `/create` من جديد.')).catch(() => {}); return true; }
 
   if (i.isButton()) {
     const map = {
