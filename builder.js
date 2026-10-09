@@ -13,6 +13,7 @@ const skey = i => `${i.client.user.id}:${i.user.id}`;
 const get = i => sessions.get(skey(i));
 
 const COLORS = [
+  { label: 'No color (default)', value: 'none', emoji: '⬜' },
   { label: 'Blurple', value: '5865F2', emoji: '🔵' }, { label: 'Red', value: 'ED4245', emoji: '🔴' },
   { label: 'Green', value: '57F287', emoji: '🟢' }, { label: 'Yellow', value: 'FEE75C', emoji: '🟡' },
   { label: 'Orange', value: 'FF7F00', emoji: '🟠' }, { label: 'Purple', value: '9B59B6', emoji: '🟣' },
@@ -37,7 +38,8 @@ const respGet = b => store.kv.get(b, 'responses', {});
 const respSave = (b, entries) => store.kv.set(b, 'responses', { ...respGet(b), ...entries });
 
 function buildContainer(s) {
-  const c = new ContainerBuilder().setAccentColor(s.color);
+  const c = new ContainerBuilder(); // بدون شريط لون افتراضياً (مثل Embed V3)؛ اللون اختياري
+  if (s.color != null) c.setAccentColor(s.color);
   const pos = s.imagePosition || 'bottom';
   const top = s.image && (pos === 'top' || pos === 'both');
   const bottom = s.image && (pos === 'bottom' || pos === 'both');
@@ -149,6 +151,17 @@ async function showPreview(i, s) {
       }));
     c.addActionRowComponents(new ActionRowBuilder().addComponents(menu));
   }
+  const editable = [...s.buttons.map(x => ['b', x]), ...s.selectOptions.map(x => ['o', x])].slice(0, 25);
+  if (editable.length) {
+    c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('bld_edit_item')
+      .setPlaceholder('✏️ Edit a button or option (text, link, reply, emoji, color)')
+      .addOptions(editable.map(([k, x]) => {
+        const opt = new StringSelectMenuOptionBuilder().setLabel(String(x.label || '-').slice(0, 100)).setValue(`${k}:${x.id}`)
+          .setDescription(k === 'b' ? (x.url ? 'Link button' : 'Button') : 'Menu option');
+        if (x.emoji) opt.setEmoji(x.emoji);
+        return opt;
+      }))));
+  }
   const hint = !type
     ? '-# Press **🔧 Choose Components** to add buttons or a select menu.'
     : `-# Preview${s.buttons.length ? ` • ${s.buttons.length} button(s)` : ''}${s.selectOptions.length ? ` • ${s.selectOptions.length} option(s)` : ''} — press **${s.editId ? '💾 Save changes' : '✅ Send'}** to ${s.editId ? 'update the sent message' : 'post'}.`;
@@ -180,7 +193,7 @@ async function handleEmbedModal(i) {
   sessions.set(skey(i), {
     title: i.fields.getTextInputValue('f_title'),
     description: i.fields.getTextInputValue('f_desc') || null,
-    color: old?.color ?? 0x5865f2,
+    color: old ? old.color ?? null : null,
     image: /^https?:\/\//.test(image) ? image : null,
     imagePosition: old?.imagePosition ?? 'bottom',
     footer: i.fields.getTextInputValue('f_footer') || null,
@@ -194,16 +207,17 @@ async function handleEmbedModal(i) {
 }
 
 async function screen(i, title, menu, color) {
-  const c = new ContainerBuilder().setAccentColor(color);
+  const c = new ContainerBuilder();
+  if (color != null) c.setAccentColor(color);
   c.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
   c.addActionRowComponents(new ActionRowBuilder().addComponents(menu));
   await i.update({ components: [c], flags: V2 });
 }
 
-const handlePickColor = i => { const s = get(i); const cur = s.color.toString(16).toUpperCase().padStart(6, '0');
+const handlePickColor = i => { const s = get(i); const cur = s.color == null ? 'none' : s.color.toString(16).toUpperCase().padStart(6, '0');
   return screen(i, '## 🎨 اختر لون الإمبد', new StringSelectMenuBuilder().setCustomId('bld_apply_color').setPlaceholder('اختر لون...')
     .addOptions(COLORS.map(c => new StringSelectMenuOptionBuilder().setLabel(c.label).setValue(c.value).setEmoji(c.emoji).setDefault(c.value === cur))), s.color); };
-const handleApplyColor = i => { const s = get(i); s.color = parseColor(i.values[0]); return showPreview(i, s); };
+const handleApplyColor = i => { const s = get(i); s.color = i.values[0] === 'none' ? null : parseColor(i.values[0]); return showPreview(i, s); };
 
 const handlePickImgPos = i => { const s = get(i);
   return screen(i, '## 📍 موضع الصورة', new StringSelectMenuBuilder().setCustomId('bld_apply_imgpos').setPlaceholder('اختر موضع...')
@@ -231,8 +245,11 @@ async function handleSetType(i) {
   await showPreview(i, s);
 }
 
-const field = (id, label, style, req, max, ph) => new ActionRowBuilder().addComponents(
-  new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(style).setRequired(req).setMaxLength(max).setPlaceholder(ph));
+const field = (id, label, style, req, max, ph, val) => {
+  const t = new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(style).setRequired(req).setMaxLength(max).setPlaceholder(ph);
+  if (val) t.setValue(String(val).slice(0, max)); // قيمة حالية عند التعديل
+  return new ActionRowBuilder().addComponents(t);
+};
 
 // مودال الزر: رابط (لو انكتب URL) أو زر عادي برد مخفي. نفس المودال بالـ builder وبالداشبورد
 const BTN_STYLES = {
@@ -241,18 +258,19 @@ const BTN_STYLES = {
   green: ButtonStyle.Success, success: ButtonStyle.Success, أخضر: ButtonStyle.Success,
   red: ButtonStyle.Danger, danger: ButtonStyle.Danger, أحمر: ButtonStyle.Danger
 };
-const btnModal = customId => new ModalBuilder().setCustomId(customId).setTitle('➕ Add Button').addComponents(
-  field('b_label', 'Button label *', TextInputStyle.Short, true, 80, 'e.g. Contact us'),
-  field('b_url', 'Link URL (empty = normal button)', TextInputStyle.Short, false, 500, 'https://...  (للزر الرابط فقط)'),
-  field('b_response', 'Reply when clicked (normal button)', TextInputStyle.Paragraph, false, 2000, 'Text shown only to the person who clicks'),
-  field('b_emoji', 'Emoji (optional)', TextInputStyle.Short, false, 100, 'e.g. 🔥  or  <:name:123456789>'),
-  field('b_style', 'Color (normal button)', TextInputStyle.Short, false, 10, 'blue / gray / green / red'));
-function parseButton(get) {
+const STYLE_NAME = { [ButtonStyle.Primary]: 'blue', [ButtonStyle.Secondary]: 'gray', [ButtonStyle.Success]: 'green', [ButtonStyle.Danger]: 'red' };
+const btnModal = (customId, cur) => new ModalBuilder().setCustomId(customId).setTitle(cur ? '✏️ Edit Button' : '➕ Add Button').addComponents(
+  field('b_label', 'Button label *', TextInputStyle.Short, true, 80, 'e.g. Contact us', cur?.label),
+  field('b_url', 'Link URL (empty = normal button)', TextInputStyle.Short, false, 500, 'https://...  (للزر الرابط فقط)', cur?.url),
+  field('b_response', 'Reply when clicked (normal button)', TextInputStyle.Paragraph, false, 2000, 'Text shown only to the person who clicks', cur?.response),
+  field('b_emoji', 'Emoji (optional)', TextInputStyle.Short, false, 100, 'e.g. 🔥  or  <:name:123456789>', cur?.emoji),
+  field('b_style', 'Color (normal button)', TextInputStyle.Short, false, 10, 'blue / gray / green / red', cur && !cur.url ? STYLE_NAME[cur.style] : ''));
+function parseButton(get, keepId) {
   const url = get('b_url').trim(), style = BTN_STYLES[get('b_style').trim().toLowerCase()] ?? ButtonStyle.Primary;
   if (url && !/^https?:\/\/\S+\.\S+$/i.test(url)) return { error: '❌ الرابط لازم يبدأ بـ `http://` أو `https://`.' };
   if (get('b_emoji').trim() && !cleanEmoji(get('b_emoji'))) return { error: BAD_EMOJI };
   return { btn: {
-    id: `cb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, label: get('b_label').trim(), emoji: cleanEmoji(get('b_emoji')),
+    id: keepId || `cb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, label: get('b_label').trim(), emoji: cleanEmoji(get('b_emoji')),
     url: url || null, response: get('b_response').trim(), style: url ? ButtonStyle.Link : style
   } };
 }
@@ -268,13 +286,14 @@ async function handleButtonModal(i) {
   await ack(i); await showPreview(i, s);
 }
 
+const optModal = (customId, cur) => new ModalBuilder().setCustomId(customId).setTitle(cur ? '✏️ Edit Menu Option' : '➕ Add Menu Option').addComponents(
+  field('o_label', 'Option label *', TextInputStyle.Short, true, 100, 'e.g. Gold Plan', cur?.label),
+  field('o_desc', 'Option description (optional)', TextInputStyle.Short, false, 100, 'e.g. Best plan for professionals', cur?.description),
+  field('o_emoji', 'Emoji (optional)', TextInputStyle.Short, false, 100, 'e.g. ⭐  or  <:name:123456789>', cur?.emoji),
+  field('o_response', 'Reply when selected * (hidden to others)', TextInputStyle.Paragraph, true, 2000, 'Text shown only to the person who selects', cur?.response));
 async function handleAddOption(i) {
   if (get(i).selectOptions.length >= 25) return;
-  await i.showModal(new ModalBuilder().setCustomId('bld_modal_opt').setTitle('➕ Add Menu Option').addComponents(
-    field('o_label', 'Option label *', TextInputStyle.Short, true, 100, 'e.g. Gold Plan'),
-    field('o_desc', 'Option description (optional)', TextInputStyle.Short, false, 100, 'e.g. Best plan for professionals'),
-    field('o_emoji', 'Emoji (optional)', TextInputStyle.Short, false, 100, 'e.g. ⭐  or  <:name:123456789>'),
-    field('o_response', 'Reply when selected * (hidden to others)', TextInputStyle.Paragraph, true, 2000, 'Text shown only to the person who selects')));
+  await i.showModal(optModal('bld_modal_opt'));
 }
 async function handleOptionModal(i) {
   const s = get(i);
@@ -284,6 +303,27 @@ async function handleOptionModal(i) {
     label: i.fields.getTextInputValue('o_label'), description: i.fields.getTextInputValue('o_desc').trim() || null,
     emoji: cleanEmoji(i.fields.getTextInputValue('o_emoji')), response: i.fields.getTextInputValue('o_response').trim()
   });
+  await ack(i); await showPreview(i, s);
+}
+
+// ===== تعديل زر أو خيار موجود (الاسم، الرابط، الرد، الايموجي، اللون) =====
+async function handleEditItem(i) {
+  const s = get(i), [k, id] = i.values[0].split(/:(.+)/);
+  if (k === 'b') { const b = s.buttons.find(x => x.id === id); if (b) return i.showModal(btnModal(`bld_modal_editbtn:${id}`, b)); }
+  if (k === 'o') { const o = s.selectOptions.find(x => x.id === id); if (o) return i.showModal(optModal(`bld_modal_editopt:${id}`, o)); }
+  return showPreview(i, s);
+}
+async function handleEditButtonModal(i, id) {
+  const s = get(i), at = s.buttons.findIndex(x => x.id === id);
+  const r = parseButton(k => i.fields.getTextInputValue(k), id);
+  if (r.error) return i.reply(eph(r.error));
+  if (at >= 0) s.buttons[at] = r.btn;
+  await ack(i); await showPreview(i, s);
+}
+async function handleEditOptionModal(i, id) {
+  const s = get(i), o = s.selectOptions.find(x => x.id === id), g = k => i.fields.getTextInputValue(k);
+  if (g('o_emoji').trim() && !cleanEmoji(g('o_emoji'))) return i.reply(eph(BAD_EMOJI));
+  if (o) Object.assign(o, { label: g('o_label'), description: g('o_desc').trim() || null, emoji: cleanEmoji(g('o_emoji')), response: g('o_response').trim() });
   await ack(i); await showPreview(i, s);
 }
 
@@ -315,7 +355,8 @@ const card = (color, ...lines) => {
 
 function dashCard(rec) {
   const s = rec.state;
-  const c = new ContainerBuilder().setAccentColor(s.color);
+  const c = new ContainerBuilder();
+  if (s.color != null) c.setAccentColor(s.color);
   c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## 🎛️ ${s.title}`));
   if (s.description) c.addTextDisplayComponents(new TextDisplayBuilder().setContent(s.description.length > 160 ? s.description.slice(0, 160) + '…' : s.description));
   c.addSeparatorComponents(sep(true));
@@ -509,6 +550,6 @@ async function handleSentSelect(i) {
 module.exports = {
   get, openEmbedModal, handleEmbedModal, handlePickColor, handleApplyColor, handlePickImgPos, handleApplyImgPos,
   handleChooseType, handleSetType, handleAddButton, handleButtonModal, handleAddOption, handleOptionModal,
-  handleRemoveOption, handleRemoveButton, handleToggleButtonsOutside, handleToggleSelectOutside,
+  handleRemoveOption, handleRemoveButton, handleEditItem, handleEditButtonModal, handleEditOptionModal, handleToggleButtonsOutside, handleToggleSelectOutside,
   handleSend, handleCancel, handleSentButton, handleSentSelect, handleDash, setDashboard, startNew, dashCard
 };

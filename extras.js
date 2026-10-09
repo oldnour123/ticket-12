@@ -146,11 +146,13 @@ async function handle(i) {
     if (id.startsWith('sent_btn_')) { await B.handleSentButton(i); return true; }
   }
   if (i.isStringSelectMenu()) {
-    const map = { bld_set_type: B.handleSetType, bld_rm_opt: B.handleRemoveOption, bld_apply_color: B.handleApplyColor, bld_apply_imgpos: B.handleApplyImgPos };
+    const map = { bld_set_type: B.handleSetType, bld_rm_opt: B.handleRemoveOption, bld_edit_item: B.handleEditItem, bld_apply_color: B.handleApplyColor, bld_apply_imgpos: B.handleApplyImgPos };
     if (map[id]) { await map[id](i); return true; }
     if (id.startsWith('sent_sel_')) { await B.handleSentSelect(i); return true; }
   }
   if (i.isModalSubmit()) {
+    if (id.startsWith('bld_modal_editbtn:')) { await B.handleEditButtonModal(i, id.split(':')[1]); return true; }
+    if (id.startsWith('bld_modal_editopt:')) { await B.handleEditOptionModal(i, id.split(':')[1]); return true; }
     const map = { bld_modal_embed: B.handleEmbedModal, bld_modal_btn: B.handleButtonModal, bld_modal_opt: B.handleOptionModal };
     if (map[id]) { await map[id](i); return true; }
   }
