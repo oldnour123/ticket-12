@@ -21,7 +21,8 @@ const top = (obj, n = 10) => Object.entries(obj || {}).sort((a, b) => b[1] - a[1
 // ===== تسجيل الأوامر =====
 const CATS = {
   owner: ['👑', 'Owner Commands'], system: ['⚙️', 'System Commands'], mod: ['🛠️', 'Moderation'], general: ['🌐', 'General Commands'],
-  admin: ['🧰', 'Admin Commands'], greet: ['✅', 'Greet System'], staff: ['👮', 'Staff Commands']
+  admin: ['🧰', 'Admin Commands'], greet: ['✅', 'Greet System'], staff: ['👮', 'Staff Commands'],
+  products: ['📦', 'Products'], economy: ['💰', 'Economy']
 };
 const C = new Map();
 const add = (name, cat, desc, o, run) => C.set(name, { name, cat, desc, ...o, run });
@@ -181,6 +182,94 @@ add('greetshow', 'greet', 'Show greet settings', { perm: P.ManageGuild }, async 
 add('points', 'staff', 'Display your points or another user\'s points', {}, async ({ m, args, botId }) => { const id = uid(args[0]) || m.author.id; reply(m, `⭐ <@${id}> has **${db(botId, 'points')[m.guild.id]?.[id] || 0}** points`); });
 add('top-points', 'staff', 'Display top 10 users with points', {}, async ({ m, botId }) => reply(m, '**🏅 Top Staff Points**\n' + (top(db(botId, 'points')[m.guild.id]).map(([k, v], i) => `**${i + 1}.** <@${k}> • ${v}`).join('\n') || 'No points yet')));
 
+// --- Products: admin gives a member products; the member takes or changes one (usually inside a ticket) ---
+const prodGet = (b, g, u) => { const r = (db(b, 'products')[g] || {})[u]; return { items: r?.items || [], taken: r?.taken || null }; };
+const prodSave = (b, g, u, r) => { const a = db(b, 'products'); const gg = (a[g] ??= {}); if (r.items.length) gg[u] = r; else delete gg[u]; put(b, 'products', a); };
+const afterUser = m => (m.content.slice(PREFIX.length).trim().match(/^\S+\s+\S+\s*([\s\S]*)$/) || [])[1] || ''; // raw text after "<command> <user>"
+function prodBox(rec, ownerId, mine) {
+  const cur = rec.items.find(x => x.id === rec.taken);
+  const list = rec.items.length ? rec.items.map((x, k) => `**${k + 1}.** ${x.name}${x.id === rec.taken ? ' • current' : ''}`).join('\n')
+    : (mine ? 'You have no products yet. Contact the staff.' : 'No products.');
+  const c = box(`## ${mine ? 'Your products' : `Products of <@${ownerId}>`}\n${list}${cur ? `\n\n**Current:** ${cur.name}` : ''}`, cur ? 0x57f287 : 0x5865f2);
+  if (mine && rec.items.length) c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`prd:${ownerId}`)
+    .setPlaceholder(cur ? 'Change your product...' : 'Take a product...')
+    .addOptions(rec.items.slice(0, 25).map(x => ({ label: x.name.slice(0, 100), value: x.id, description: x.id === rec.taken ? 'Your current product' : undefined })))));
+  return c;
+}
+add('giveproduct', 'products', 'Give a member a product: giveproduct @user <name> | <details shown only to them>', { perm: P.Administrator }, async ({ m, args, botId }) => {
+  const id = uid(args[0]); if (!id) return no(m, 'Usage: giveproduct @user <name> | <details (optional)>');
+  const [name, ...rest] = afterUser(m).split('|'), n = name.trim().slice(0, 80), details = rest.join('|').trim().slice(0, 1500);
+  if (!n) return no(m, 'Usage: giveproduct @user <name> | <details (optional)>');
+  const rec = prodGet(botId, m.guild.id, id);
+  if (rec.items.length >= 25) return no(m, 'A member can have up to 25 products');
+  if (rec.items.some(x => x.name.toLowerCase() === n.toLowerCase())) return no(m, 'This member already has a product with that name');
+  rec.items.push({ id: Math.random().toString(36).slice(2, 8), name: n, details });
+  prodSave(botId, m.guild.id, id, rec);
+  ok(m, `<@${id}> now has **${n}** (${rec.items.length} product${rec.items.length > 1 ? 's' : ''}). They can type \`${PREFIX}products\` in their ticket.`);
+  mlog(m, `📦 <@${m.author.id}> gave <@${id}> the product **${n}**`);
+});
+add('withdraw', 'products', 'Take products back from a member: withdraw @user [product name] (no name = all)', { perm: P.Administrator }, async ({ m, args, botId }) => {
+  const id = uid(args[0]); if (!id) return no(m, 'Usage: withdraw @user [product name]');
+  const rec = prodGet(botId, m.guild.id, id); if (!rec.items.length) return no(m, 'This member has no products');
+  const name = args.slice(1).join(' ').trim().toLowerCase(); let gone;
+  if (!name) { gone = rec.items; rec.items = []; rec.taken = null; }
+  else {
+    const k = rec.items.findIndex(x => x.name.toLowerCase() === name); if (k < 0) return no(m, `Product not found. See the list with \`${PREFIX}products @user\``);
+    gone = rec.items.splice(k, 1); if (rec.taken === gone[0].id) rec.taken = null;
+  }
+  prodSave(botId, m.guild.id, id, rec);
+  ok(m, `Withdrew ${gone.map(x => `**${x.name}**`).join(', ')} from <@${id}>`);
+  mlog(m, `📤 <@${m.author.id}> withdrew ${gone.map(x => `**${x.name}**`).join(', ')} from <@${id}>`);
+});
+add('products', 'products', 'See your products and take or change one (staff: products @user)', {}, async ({ m, args, botId }) => {
+  const other = uid(args[0]), forId = other && m.member.permissions.has(P.Administrator) ? other : m.author.id;
+  m.reply({ components: [prodBox(prodGet(botId, m.guild.id, forId), forId, forId === m.author.id)], flags: V2, allowedMentions: { repliedUser: false, parse: [] } }).catch(() => {});
+});
+async function productPick(i) {
+  if (i.customId.slice(4) !== i.user.id) { await i.reply({ content: '❌ This menu is not for you.', flags: EPH }); return true; }
+  const b = i.client.botId, rec = prodGet(b, i.guildId, i.user.id), it = rec.items.find(x => x.id === i.values[0]);
+  if (!it) { // withdrawn after the menu was posted
+    await i.update({ components: [prodBox(rec, i.user.id, true)], flags: V2 });
+    await i.followUp({ content: '❌ This product is no longer available.', flags: EPH }); return true;
+  }
+  const prev = rec.items.find(x => x.id === rec.taken);
+  rec.taken = it.id; prodSave(b, i.guildId, i.user.id, rec);
+  await i.update({ components: [prodBox(rec, i.user.id, true)], flags: V2 });
+  await i.followUp({ components: [box(`## ${it.name}\n${it.details || 'No extra details for this product.'}`, 0x57f287)], flags: V2 | EPH });
+  if (prev?.id !== it.id) mlog(i, prev ? `🔄 <@${i.user.id}> changed product: **${prev.name}** → **${it.name}**` : `📦 <@${i.user.id}> took **${it.name}**`);
+  return true;
+}
+
+// --- Economy: `n` = your balance, `n @user` = their balance, `n @user <amount>` = transfer ---
+const fmt = n => Number(n).toLocaleString('en-US'), MAX_BAL = 1e15;
+const toAmount = s => { const a = require('./extras').parseAmount(s); return a === null ? null : Math.floor(a); };
+const balAll = b => db(b, 'balance'), balOf = (b, g, u) => (balAll(b)[g] || {})[u] || 0;
+add('n', 'economy', 'Your balance: n • Their balance: n @user • Transfer: n @user <amount>', {}, async ({ m, args, botId }) => {
+  const g = m.guild.id;
+  if (!args.length) return reply(m, `💰 **Your balance:** ${fmt(balOf(botId, g, m.author.id))}`);
+  const id = uid(args[0]); if (!id) return no(m, 'Usage: n | n @user | n @user <amount>');
+  if (args.length === 1) return reply(m, `💰 <@${id}> **balance:** ${fmt(balOf(botId, g, id))}`);
+  const amount = toAmount(args[1]); if (!amount || amount < 1) return no(m, 'Invalid amount. Example: `n @user 500` or `n @user 2k`');
+  if (id === m.author.id) return no(m, 'You cannot transfer to yourself');
+  const mb = await mem(m, args[0]); if (!mb) return no(m, 'Member not found in this server');
+  if (mb.user.bot) return no(m, 'You cannot transfer to a bot');
+  const all = balAll(botId), gg = (all[g] ??= {}), have = gg[m.author.id] || 0; // read + write with no await in between
+  if (have < amount) return no(m, `Not enough balance. You have **${fmt(have)}**`);
+  if ((gg[id] || 0) + amount > MAX_BAL) return no(m, 'That balance is too large');
+  gg[m.author.id] = have - amount; gg[id] = (gg[id] || 0) + amount; put(botId, 'balance', all);
+  m.reply({ components: [box(`✅ <@${m.author.id}> transferred **${fmt(amount)}** to <@${id}>\n**Your balance:** ${fmt(gg[m.author.id])}`, 0x57f287)], flags: V2, allowedMentions: { users: [id], repliedUser: false } }).catch(() => {});
+  mlog(m, `💸 <@${m.author.id}> transferred ${fmt(amount)} to <@${id}>`);
+});
+for (const [name, sign] of [['n-add', 1], ['n-remove', -1]])
+  add(name, 'economy', `${sign > 0 ? 'Add balance to' : 'Remove balance from'} a member: ${name} @user <amount>`, { perm: P.Administrator }, async ({ m, args, botId }) => {
+    const id = uid(args[0]), amount = toAmount(args[1]); if (!id || !amount || amount < 1) return no(m, `Usage: ${name} @user <amount>`);
+    const all = balAll(botId), gg = (all[m.guild.id] ??= {}), cur = gg[id] || 0, delta = sign > 0 ? amount : Math.min(amount, cur);
+    if (sign > 0 && cur + amount > MAX_BAL) return no(m, 'That balance is too large');
+    gg[id] = cur + sign * delta; put(botId, 'balance', all);
+    ok(m, `<@${id}> ${sign > 0 ? 'received' : 'lost'} **${fmt(delta)}** • balance: **${fmt(gg[id])}**`);
+    mlog(m, `${sign > 0 ? '➕' : '➖'} <@${m.author.id}> ${sign > 0 ? 'added' : 'removed'} ${fmt(delta)} ${sign > 0 ? 'to' : 'from'} <@${id}>`);
+  });
+
 // ===== قائمة المساعدة =====
 function helpBox(c, k) {
   const cont = new ContainerBuilder().setAccentColor(0x2b2d31);
@@ -195,6 +284,7 @@ function helpBox(c, k) {
     .setPlaceholder('Select a category to view commands').addOptions(Object.keys(CATS).filter(x => used.includes(x)).map(x => ({ label: CATS[x][1], value: x, emoji: CATS[x][0] })))));
 }
 async function interaction(i) {
+  if (i.isStringSelectMenu() && i.customId.startsWith('prd:') && i.guildId) return productPick(i);
   if (!(i.isStringSelectMenu() && i.customId.startsWith('hlp:'))) return false;
   if (i.customId.slice(4) !== i.user.id) { await i.reply({ content: '❌ This menu is not for you.', flags: EPH }); return true; }
   await i.update({ components: [helpBox({ uid: i.user.id, bot: i.client.user, guild: i.guild.name, name: i.member.displayName }, i.values[0])], flags: V2 });

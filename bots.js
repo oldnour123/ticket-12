@@ -2,6 +2,7 @@ const {
   Client, GatewayIntentBits, MessageFlags, ChannelType, PermissionFlagsBits, ActionRowBuilder,
   UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle
 } = require('discord.js');
+const { eph, msg, quiet, box } = require('./cx');
 const store = require('./store'), extras = require('./extras'), prefix = require('./prefix');
 const { buildPanel, buildTicketMain, buildClaim, claimRow, buildAfter, buildItemResponse } = require('./ui');
 
@@ -19,7 +20,7 @@ function attach(client, botId) {
     const type = p?.types.find(t => t.id === typeId);
     return { p, type, ownerId, ctx: { ownerId, channelId: i.channel?.id, number, ts } };
   };
-  const bad = i => i.reply({ content: 'Ticket data not found', flags: EPH });
+  const bad = i => i.reply(eph('❌ Ticket data not found'));
 
   client.on('interactionCreate', async i => {
     try {
@@ -29,13 +30,13 @@ function attach(client, botId) {
       // ===== فتح تذكرة من البانل =====
       if (i.isStringSelectMenu() && i.customId.startsWith('tsel:')) {
         const p = store.get(botId, i.customId.split(':')[1]);
-        if (!p || p.guildId !== i.guildId) return i.reply({ content: 'This panel no longer exists', flags: EPH });
+        if (!p || p.guildId !== i.guildId) return i.reply(eph('❌ This panel no longer exists'));
         await i.update({ components: [buildPanel(p)], flags: V2 });
         const type = p.types.find(t => t.id === i.values[0]);
         if (!type) return;
         const prefix = `${i.user.id}:${p.id}:${type.id}:`;
         const old = i.guild.channels.cache.find(c => c.topic?.startsWith(prefix));
-        if (old) return i.followUp({ content: `You already have an open ticket: ${old}`, flags: EPH });
+        if (old) return i.followUp(eph(`❌ You already have an open ticket: ${old}`));
 
         const number = nextNumber(botId, p.id), ts = Math.floor(Date.now() / 1000);
         const role = type.roleId || p.supportRoleId;
@@ -54,13 +55,13 @@ function attach(client, botId) {
         await ch.send({ components: [buildTicketMain(p, type, { ownerId: i.user.id, channelId: ch.id, number, ts })], flags: V2, allowedMentions: am });
         await ch.send({ ...buildClaim(p, type, i.user.id), allowedMentions: am });
         const after = buildAfter(p); if (after) await ch.send(after);
-        return i.followUp({ content: `Ticket opened: ${ch}`, flags: EPH });
+        return i.followUp(eph(`✅ Ticket opened: ${ch}`));
       }
 
       // ===== أقسام إضافية (قوائم/أزرار طرق الدفع...) =====
       if ((i.isStringSelectMenu() && i.customId.startsWith('t_x:')) || (i.isButton() && i.customId.startsWith('t_xb:'))) {
         const { p, type, ownerId, ctx } = info(i); if (!p || !type) return bad(i);
-        if (i.user.id !== ownerId && !isStaff(i.member, p, type)) return i.reply({ content: 'Only the ticket owner or staff can use this', flags: EPH });
+        if (i.user.id !== ownerId && !isStaff(i.member, p, type)) return i.reply(eph('❌ Only the ticket owner or staff can use this'));
         const [xid, itemId] = i.isButton() ? i.customId.split(':').slice(1) : [i.customId.slice(4), i.values[0]];
         const it = type.extras?.find(e => e.id === xid)?.items.find(t => t.id === itemId);
         await i.update({ components: [buildTicketMain(p, type, ctx)], flags: V2 }); // يرجّع القائمة فاضية
@@ -74,7 +75,7 @@ function attach(client, botId) {
       if (i.isStringSelectMenu() && i.customId === 't_tools') {
         const { p, type, ownerId, ctx } = info(i); if (!p || !type) return bad(i);
         const reset = () => i.message.edit({ components: [buildTicketMain(p, type, ctx)], flags: V2 }).catch(() => {});
-        if (!isStaff(i.member, p, type)) { await reset(); return i.reply({ content: 'Ticket tools are for staff only', flags: EPH }); }
+        if (!isStaff(i.member, p, type)) { await reset(); return i.reply(eph('❌ Ticket tools are for staff only')); }
         const v = i.values[0];
         if (v === 'rename') {
           await i.showModal(new ModalBuilder().setCustomId('t_rename').setTitle('Rename Ticket').addComponents(
@@ -84,49 +85,50 @@ function attach(client, botId) {
         }
         await reset();
         if (v === 'add' || v === 'rm')
-          return i.reply({ content: v === 'add' ? 'Select the user to add:' : 'Select the user to remove:', flags: EPH,
-            components: [new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId(v === 'add' ? 't_add' : 't_rm').setPlaceholder('Select a user').setMaxValues(1))] });
+          return i.reply(eph(v === 'add' ? '➕ Select the user to add:' : '➖ Select the user to remove:', {
+            rows: [new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId(v === 'add' ? 't_add' : 't_rm').setPlaceholder('Select a user').setMaxValues(1))] }));
         if (v === 'lock') {
           const locked = i.channel.permissionOverwrites.cache.get(ownerId)?.deny.has(P.SendMessages);
           await i.channel.permissionOverwrites.edit(ownerId, { SendMessages: !!locked });
-          return i.reply({ content: locked ? 'Ticket unlocked, the owner can write again.' : 'Ticket locked, the owner can no longer write.' });
+          return i.reply(msg(locked ? '🔓 Ticket unlocked, the owner can write again.' : '🔒 Ticket locked, the owner can no longer write.'));
         }
       }
       if (i.isUserSelectMenu() && (i.customId === 't_add' || i.customId === 't_rm')) {
-        const { p, type, ownerId } = info(i); if (!p || !type || !isStaff(i.member, p, type)) return i.update({ content: 'Staff only', components: [] });
+        const { p, type, ownerId } = info(i); if (!p || !type || !isStaff(i.member, p, type)) return i.update(msg('❌ Staff only'));
         const uid = i.values[0];
         if (i.customId === 't_add') {
           await i.channel.permissionOverwrites.edit(uid, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true });
-          await i.update({ content: 'User added', components: [] });
-          return i.channel.send({ content: `<@${uid}> was added to the ticket by <@${i.user.id}>`, allowedMentions: { users: [uid] } });
+          await i.update(msg('✅ User added'));
+          return i.channel.send(msg(`➕ <@${uid}> was added to the ticket by <@${i.user.id}>`, { allowedMentions: { users: [uid] } }));
         }
-        if (uid === ownerId) return i.update({ content: 'You cannot remove the ticket owner', components: [] });
+        if (uid === ownerId) return i.update(msg('❌ You cannot remove the ticket owner'));
         await i.channel.permissionOverwrites.delete(uid);
-        await i.update({ content: 'User removed', components: [] });
-        return i.channel.send({ content: `<@${uid}> was removed from the ticket by <@${i.user.id}>`, allowedMentions: { parse: [] } });
+        await i.update(msg('✅ User removed'));
+        return i.channel.send(quiet(`➖ <@${uid}> was removed from the ticket by <@${i.user.id}>`));
       }
       if (i.isModalSubmit() && i.customId === 't_rename') {
-        const { p, type } = info(i); if (!p || !type || !isStaff(i.member, p, type)) return i.reply({ content: 'Staff only', flags: EPH });
+        const { p, type } = info(i); if (!p || !type || !isStaff(i.member, p, type)) return i.reply(eph('❌ Staff only'));
         await i.channel.setName(slug(i.fields.getTextInputValue('name')));
-        return i.reply({ content: `Ticket renamed by <@${i.user.id}>`, allowedMentions: { parse: [] } });
+        return i.reply(quiet(`✏️ Ticket renamed by <@${i.user.id}>`));
       }
 
       // ===== استلام وإغلاق =====
       if (i.isButton() && (i.customId === 't_claim' || i.customId === 't_close')) {
         const { p, type, ownerId } = info(i); if (!p) return bad(i);
         if (i.customId === 't_claim') {
-          if (!isStaff(i.member, p, type)) return i.reply({ content: 'Staff only', flags: EPH });
-          await i.update({ content: `${i.message.content}\n\nClaimed by <@${i.user.id}>`, components: [claimRow(true)], allowedMentions: { parse: [] } });
+          if (!isStaff(i.member, p, type)) return i.reply(eph('❌ Staff only'));
+          if (i.message.flags.has(V2)) await i.update({ ...buildClaim(p, type, ownerId, i.user.id), allowedMentions: { parse: [] } });
+          else await i.update({ content: `${i.message.content}\n\n✅ Claimed by <@${i.user.id}>`, components: [claimRow(true)], allowedMentions: { parse: [] } }); // تذاكر قديمة (نص عادي)
           return prefix.addPoint(botId, i.guildId, i.user.id); // نقطة للستاف عند الاستلام
         }
-        if (!isStaff(i.member, p, type) && i.user.id !== ownerId) return i.reply({ content: 'You do not have permission', flags: EPH });
-        await i.reply({ content: 'This ticket will be deleted in 5 seconds...' });
-        if (p.logChannelId) i.guild.channels.cache.get(p.logChannelId)?.send({ content: `Ticket \`${i.channel.name}\` was closed by <@${i.user.id}> (owner: <@${ownerId}>)`, allowedMentions: { parse: [] } });
+        if (!isStaff(i.member, p, type) && i.user.id !== ownerId) return i.reply(eph('❌ You do not have permission'));
+        await i.reply(msg('🔒 This ticket will be deleted in 5 seconds...'));
+        if (p.logChannelId) i.guild.channels.cache.get(p.logChannelId)?.send(quiet(`🔒 Ticket \`${i.channel.name}\` was closed by <@${i.user.id}> (owner: <@${ownerId}>)`));
         setTimeout(() => i.channel.delete().catch(() => {}), 5000);
       }
     } catch (e) {
       console.error(e);
-      const msg = { content: 'Something went wrong. Make sure the bot has the Manage Channels permission and the category is valid.', flags: EPH };
+      const msg = eph('❌ Something went wrong. Make sure the bot has the Manage Channels permission and the category is valid.');
       (i.replied || i.deferred ? i.followUp(msg) : i.reply(msg)).catch(() => {});
     }
   });
