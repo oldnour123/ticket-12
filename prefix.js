@@ -182,6 +182,41 @@ add('greetshow', 'greet', 'Show greet settings', { perm: P.ManageGuild }, async 
 add('points', 'staff', 'Display your points or another user\'s points', {}, async ({ m, args, botId }) => { const id = uid(args[0]) || m.author.id; reply(m, `⭐ <@${id}> has **${db(botId, 'points')[m.guild.id]?.[id] || 0}** points`); });
 add('top-points', 'staff', 'Display top 10 users with points', {}, async ({ m, botId }) => reply(m, '**🏅 Top Staff Points**\n' + (top(db(botId, 'points')[m.guild.id]).map(([k, v], i) => `**${i + 1}.** <@${k}> • ${v}`).join('\n') || 'No points yet')));
 
+// --- Auto line: after every message in a chosen channel the bot posts a divider image ---
+const alCache = new Map(), lineIds = new Set();
+const alAll = b => { let c = alCache.get(b); if (!c) alCache.set(b, c = db(b, 'autoline')); return c; }; // cached: this runs on every message
+const alSave = b => put(b, 'autoline', alAll(b));
+const lineMsg = url => ({ components: [new MediaGalleryBuilder().addItems({ media: { url } })], flags: V2, allowedMentions: { parse: [] } });
+const isLineOnly = m => !!m.components?.length && m.components.every(c => c.type === 12); // a message made only of an image gallery = a divider line (any of our bots)
+add('autoline', 'admin', 'Post a divider image after every message: autoline <image link> | autoline off | autoline (list). Add #channel to target another channel', { perm: P.Administrator }, async ({ m, args, botId }) => {
+  const g = m.guild.id, all = alAll(botId), mine = (all[g] ??= {});
+  const cm = /^<#(\d+)>$/.exec(args[0] || ''), chId = cm ? cm[1] : m.channel.id, arg = (cm ? args[1] : args[0]) || '';
+  if (!arg) {
+    const on = Object.entries(mine);
+    return reply(m, '**Auto line**\n' + (on.length ? on.map(([c, u]) => `<#${c}> • ${u}`).join('\n') : 'Not enabled in any channel.') + `\n\nUsage: \`${PREFIX}autoline <image link>\` • \`${PREFIX}autoline off\``);
+  }
+  if (/^(off|stop|disable|remove)$/i.test(arg)) {
+    if (!mine[chId]) return no(m, `Auto line is not enabled in <#${chId}>`);
+    delete mine[chId]; if (!Object.keys(mine).length) delete all[g]; alSave(botId); return ok(m, `Auto line disabled in <#${chId}>`);
+  }
+  let url; try { url = new URL(arg); } catch {}
+  if (!url || !/^https?:$/.test(url.protocol) || arg.length > 500) return no(m, 'Send a direct image link starting with https://');
+  const ch = m.guild.channels.cache.get(chId); if (!ch || typeof ch.send !== 'function') return no(m, 'Channel not found');
+  try { const t = await ch.send(lineMsg(arg)); lineIds.add(t.id); } // test line: if Discord or the permissions reject it, we don't save
+  catch (e) { return no(m, `I could not post the image in <#${chId}> — check the link and my Send Messages permission (${String(e.message).slice(0, 80)})`); }
+  mine[chId] = arg; alSave(botId);
+  ok(m, `Auto line enabled in <#${chId}>. I will post that image after every message there.`);
+});
+async function autoline(m, botId) {
+  if (!m.guild || m.system || m.author?.id === m.client.user.id || lineIds.has(m.id) || isLineOnly(m)) return;
+  if (m.content && m.content.toLowerCase().startsWith(`${PREFIX}autoline`)) return;
+  const url = alAll(botId)[m.guild.id]?.[m.channelId]; if (!url) return;
+  try {
+    const r = await m.channel.send(lineMsg(url));
+    lineIds.add(r.id); if (lineIds.size > 1000) lineIds.delete(lineIds.values().next().value);
+  } catch {}
+}
+
 // --- Products: admin gives a member products; the member takes or changes one (usually inside a ticket) ---
 const prodGet = (b, g, u) => { const r = (db(b, 'products')[g] || {})[u]; return { items: r?.items || [], taken: r?.taken || null }; };
 const prodSave = (b, g, u, r) => { const a = db(b, 'products'); const gg = (a[g] ??= {}); if (r.items.length) gg[u] = r; else delete gg[u]; put(b, 'products', a); };
@@ -323,4 +358,4 @@ async function greet(mb, botId) {
 }
 const addPoint = (b, g, u) => { const p = db(b, 'points'); ((p[g] ??= {})[u] = (p[g][u] || 0) + 1); put(b, 'points', p); };
 
-module.exports = { handle, interaction, onDelete, greet, addPoint };
+module.exports = { handle, interaction, onDelete, greet, addPoint, autoline };

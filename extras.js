@@ -87,7 +87,9 @@ async function autoReply(m, botId) {
 }
 
 async function onMessage(m, botId) {
-  if (m.author.bot || !m.guild) return;
+  if (!m.guild) return;
+  prefix.autoline(m, botId).catch(() => {}); // الخط التلقائي: يشتغل بعد أي رسالة (حتى رسائل البوتات)
+  if (m.author.bot) return;
   await taxMessage(m, botId).catch(() => {});
   await autoReply(m, botId);
   await prefix.handle(m, botId).catch(e => console.error('prefix:', e.message));
